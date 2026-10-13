@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Meu Mês">
+<meta name="theme-color" content="#0E6E62">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<title>Meu Mês</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Uma coluna de bolso (máx. 520px). Topo = quanto ainda posso gastar; depois anotar; depois o detalhe do ciclo. */
+:root{
+  --bg:#F3F5F4; --card:#FFFFFF; --ink:#18242B; --muted:#5E6B70; --line:#DCE2E0;
+  --accent:#0E6E62; --accent-ink:#FFFFFF; --soft:#E2EFEC;
+  --ok:#1F7A4D; --warn:#B26B00; --bad:#B3261E; --ok-bg:#E3F3EA; --warn-bg:#FBEFD9; --bad-bg:#FBE4E2;
+  --f-display:"Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --f-num:"IBM Plex Mono", ui-monospace, Menlo, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#101719; --card:#172124; --ink:#E6ECEA; --muted:#93A19F; --line:#2A3639;
+  --accent:#4FC2AE; --accent-ink:#0B1A17; --soft:#1C3330;
+  --ok:#5CCB8F; --warn:#F0B24A; --bad:#F0857C; --ok-bg:#16301F; --warn-bg:#33270F; --bad-bg:#3A1B19; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;-webkit-text-size-adjust:100%}
+[hidden]{display:none!important}
+.wrap{max-width:520px;margin:0 auto;padding-inline:16px;padding-top:calc(env(safe-area-inset-top,0px) + 14px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 40px);display:grid;gap:14px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
+h2{font-size:15px;font-weight:700}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cyc{display:flex;align-items:center;gap:4px}
+.cyc button{background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;width:34px;height:34px;font-size:16px;cursor:pointer}
+.cyc span{font-size:13px;color:var(--muted);min-width:118px;text-align:center}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.hero{display:grid;gap:10px}
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.big{font-family:var(--f-display);font-size:40px;font-weight:700;line-height:1.05;letter-spacing:-.02em}
+.bar{position:relative;height:12px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--accent);border-radius:99px}
+.bar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink);opacity:.55}
+.row{display:flex;justify-content:space-between;gap:10px;font-size:13px}
+.chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:600}
+.chip.ok{background:var(--ok-bg);color:var(--ok)} .chip.warn{background:var(--warn-bg);color:var(--warn)} .chip.bad{background:var(--bad-bg);color:var(--bad)}
+.add{display:grid;gap:10px}
+.add label{font-size:12px;color:var(--muted)}
+.inrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+input[type=text],input[type=password]{width:100%;font:inherit;font-size:17px;padding:13px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink)}
+input:focus{outline:none;border-color:var(--accent)}
+.falar{width:52px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;cursor:pointer}
+.dica{font-size:13px;background:var(--soft);border-radius:10px;padding:10px 12px}
+.pv,.opts{display:flex;flex-wrap:wrap;gap:6px}
+.pv button,.opts button{font:inherit;font-size:13px;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.pv button.v{font-family:var(--f-num)}
+.pv button.on,.opts button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn{font:inherit;font-weight:600;font-size:16px;padding:13px;border-radius:12px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink);font-size:14px;padding:10px}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.msg{font-size:13px;min-height:1.2em}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:380px){.grid2{grid-template-columns:1fr}}
+.mini{display:grid;gap:6px;align-content:start}
+.mini .v{font-family:var(--f-display);font-size:22px;font-weight:700}
+.cats{display:grid;gap:8px}
+.cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:13px}
+.cat .bar{grid-column:1/-1;height:6px}
+.day{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;padding:12px 0 4px}
+.it{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--line);align-items:center}
+.it .d{overflow-wrap:anywhere}
+.it .s{font-size:12px;color:var(--muted)}
+.it .x{grid-row:span 2;display:flex;align-items:center;gap:8px}
+.del{background:none;border:0;color:var(--muted);font-size:18px;cursor:pointer;padding:4px 6px;border-radius:6px}
+.del.confirm{color:var(--bad);font-size:12px;font-weight:600;border:1px solid var(--bad)}
+.empty{padding:14px 2px;color:var(--muted);font-size:14px}
+.note{font-size:12px;color:var(--muted)}
+.cfgbox{display:grid;gap:8px}
+.cfgbox code{font-family:var(--f-num);font-size:11px;overflow-wrap:anywhere;background:var(--soft);padding:6px 8px;border-radius:8px}
+@media (prefers-reduced-motion: no-preference){.bar i{transition:width .5s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="card" id="setup" hidden>
+    <h1>Meu Mês</h1>
+    <p>Este app ainda não está ligado à sua planilha. Abra o link de configuração (o QR code que o Claude mostrou no computador). Sem ele, nenhum dado aparece aqui.</p>
+  </section>
+
+  <div id="app" hidden style="display:grid;gap:14px">
+  <div class="top">
+    <h1>Meu Mês</h1>
+    <div class="cyc">
+      <button id="prev" aria-label="Ciclo anterior">‹</button>
+      <span id="cycLbl">ciclo</span>
+      <button id="next" aria-label="Próximo ciclo">›</button>
+    </div>
+  </div>
+
+  <section class="card" id="instalar" hidden>
+    <h2>Configurado ✅</h2>
+    <p class="note" style="font-size:14px">Agora, no Safari: toque em <strong>Compartilhar</strong> (quadrado com seta) → <strong>Adicionar à Tela de Início</strong> → <strong>Adicionar</strong>. Depois abra pelo ícone novo.</p>
+  </section>
+
+  <section class="card hero" aria-live="polite">
+    <div class="row"><span class="lbl">Ainda posso gastar no cartão</span><span id="pace" class="chip ok">no ritmo</span></div>
+    <div class="big num" id="livre">R$ —</div>
+    <div class="bar" aria-hidden="true"><i id="barCartao" style="width:0%"></i><b id="barIdeal" style="left:0%"></b></div>
+    <div class="row muted"><span id="usado">Usado: —</span><span id="teto">Teto: —</span></div>
+    <div class="note" id="heroNote">Carregando…</div>
+  </section>
+
+  <section class="card add" aria-labelledby="addT">
+    <h2 id="addT">Anotar gasto</h2>
+    <label for="txt">Fale ou digite, por exemplo: <em>almoço 38 xp</em>, <em>uber 22 nubank</em>, <em>pix presente 100</em></label>
+    <div class="inrow">
+      <input id="txt" type="text" autocomplete="off" enterkeyhint="done" placeholder="o que foi + valor + cartão">
+      <button class="falar" id="falar" type="button" aria-label="Falar o gasto">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+      </button>
+    </div>
+    <div class="dica" id="dica" hidden>Toque no <strong>microfone do teclado</strong> (embaixo, ao lado da barra de espaço) e fale.</div>
+    <div class="pv" id="pv" hidden>
+      <button class="v on" id="pvValor" type="button">R$ 0,00</button>
+      <button id="pvMeio" type="button">Cartão XP</button>
+      <button id="pvCat" type="button">Outros</button>
+    </div>
+    <div class="opts" id="optMeio" hidden></div>
+    <div class="opts" id="optCat" hidden></div>
+    <button class="btn" id="salvar" disabled>Salvar</button>
+    <div class="msg" id="msg" role="status"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="card mini">
+      <h2>Pix e débito</h2>
+      <div class="v num" id="pixV">R$ 0</div>
+      <div class="bar"><i id="pixBar" style="width:0%"></i></div>
+      <div class="note" id="pixNote">de R$ 1.000 para imprevistos</div>
+    </section>
+    <section class="card mini">
+      <h2>Viagens</h2>
+      <div class="v num" id="viaV">R$ 0</div>
+      <div class="bar"><i id="viaBar" style="width:0%"></i></div>
+      <div class="note" id="viaNote">previsto R$ 0</div>
+    </section>
+  </div>
+
+  <section class="card mini">
+    <div class="row"><h2>Reserva de emergência</h2><span class="note" id="resData"></span></div>
+    <div class="v num" id="resV">R$ —</div>
+    <div class="bar"><i id="resBar" style="width:0%"></i></div>
+    <div class="row note"><span id="resPct">—</span><span id="resMeta">meta —</span></div>
+    <button class="btn ghost" id="resBtn">Registrar transferência para a reserva</button>
+    <div class="msg" id="resMsg" role="status"></div>
+  </section>
+
+  <section class="card">
+    <div class="row"><h2>Por categoria</h2><span class="note" id="semana"></span></div>
+    <div class="cats" id="cats"></div>
+  </section>
+
+  <section class="card">
+    <h2>Lançamentos do ciclo</h2>
+    <div id="list"></div>
+  </section>
+
+  <section class="card cfgbox">
+    <button class="btn ghost" id="cfgBtn" type="button">Dados para o Atalho da Siri</button>
+    <div id="cfgArea" hidden class="cfgbox">
+      <p class="note">Use só no app Atalhos deste iPhone. Não envie para ninguém e não tire print.</p>
+      <div class="row"><span>URL</span><button class="btn ghost" id="cpUrl" type="button">Copiar URL</button></div>
+      <div class="row"><span>Chave</span><button class="btn ghost" id="cpKey" type="button">Copiar chave</button></div>
+      <div class="msg" id="cpMsg"></div>
+      <button class="btn ghost" id="sair" type="button">Desligar este aparelho (apaga a chave daqui)</button>
+    </div>
+  </section>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const MEIOS=[["xp","Cartão XP"],["nubank","Cartão Nubank"],["inter","Pix/Débito Inter"],["dinheiro","Dinheiro"]];
+const CATS=["Mercado e padaria","Restaurantes","Delivery (iFood)","Transporte","Lazer","Saúde e farmácia","Compras","Cuidados pessoais","Academia","Casa","Presentes","Viagem","Outros"];
+const KW=[["Viagem",/viagem|morro|cuiab|vilhena|pousada|hotel|passagem|aluguel de carro|locadora/],["Delivery (iFood)",/ifood|delivery/],
+ ["Mercado e padaria",/mercado|padaria|quitanda|atacad|feira|hortifruti|açougue|acougue|p[aã]o\b/],["Restaurantes",/almo[cç]o|jantar|restaurante|lanche|caf[eé]|pizza|hamb[uú]rguer|sushi|marmita|self/],
+ ["Transporte",/uber|\b99\b|gasolina|combust[ií]vel|posto|estacionamento|ped[aá]gio|[oô]nibus|metr[oô]|shell/],["Lazer",/\bbar\b|cerveja|chopp|festa|show|cinema|ingresso|balada|filme/],
+ ["Saúde e farmácia",/farm[aá]cia|rem[eé]dio|drogaria|m[eé]dico|exame|consulta|dentista/],["Academia",/academia|evolve|suplemento|whey|creatina/],
+ ["Cuidados pessoais",/barbeiro|cabelo|est[eé]tica|manicure|perfume/],["Casa",/diarista|\bg[aá]s\b|\bluz\b|[aá]gua|internet|casa/],["Presentes",/presente|anivers/],
+ ["Compras",/amazon|mercado ?livre|shein|loja|roupa|t[eê]nis|compra/]];
+const MES=["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+const $=id=>document.getElementById(id);
+const brl=v=>(v<0?"-":"")+"R$ "+Math.abs(v).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const brl0=v=>(v<0?"-":"")+"R$ "+Math.abs(Math.round(v)).toLocaleString("pt-BR");
+const pad=n=>String(n).padStart(2,"0");
+const isoDate=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const ls={get(k){try{return JSON.parse(localStorage.getItem(k));}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}},del(k){try{localStorage.removeItem(k);}catch(e){}}};
+
+// ---- configuração: vem do link #c=<base64> (fica só neste aparelho) ----
+function lerHash(){
+  const m=location.hash.match(/^#c=([A-Za-z0-9_-]+)$/); if(!m) return null;
+  try{ const j=JSON.parse(decodeURIComponent(escape(atob(m[1].replace(/-/g,"+").replace(/_/g,"/"))))); if(j.u&&j.k&&/^https:\/\/script\.google\.com\//.test(j.u)) return j; }catch(e){}
+  return null;
+}
+let conf=lerHash()||ls.get("meumes_conf");
+const veioDoLink=!!lerHash();
+if(veioDoLink) ls.set("meumes_conf",conf);
+const standalone=window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;
+
+let cfg=ls.get("meumes_cfgcache")||null, gastos=[], carregando=false;
+let draft={valor:0,meio:"xp",cat:"Outros",desc:"",catManual:false,meioManual:false};
+
+async function api(body){
+  const r=await fetch(conf.u,{method:"POST",body:JSON.stringify(Object.assign({k:conf.k},body)),headers:{"Content-Type":"text/plain;charset=utf-8"},redirect:"follow",credentials:"omit",referrerPolicy:"no-referrer"});
+  const j=await r.json(); if(!j.ok) throw Object.assign(new Error(j.erro||"erro"),{srv:true}); return j;
+}
+function cicloDe(dstr){const [y,m,d]=dstr.split("-").map(Number);const dia=(cfg&&cfg.diaSalario)||10;let yy=y,mm=m;if(d<dia){mm--;if(mm<1){mm=12;yy--;}}return yy+"-"+pad(mm);}
+function addCiclo(c,n){let [y,m]=c.split("-").map(Number);let t=y*12+m-1+n;return Math.floor(t/12)+"-"+pad(t%12+1);}
+function limites(c){const dia=(cfg&&cfg.diaSalario)||10;const [y,m]=c.split("-").map(Number);return [new Date(y,m-1,dia),new Date(y,m,dia-1)];}
+let ciclo=cicloDe(isoDate(new Date()));
+
+function parse(t){
+  const s=t.toLowerCase();
+  const nums=[...s.matchAll(/(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)/g)].map(x=>x[1]);
+  let valor=0; if(nums.length){let n=nums[nums.length-1];n=/\.\d{3}/.test(n)?n.replace(/\./g,"").replace(",","."):n.replace(",",".");valor=parseFloat(n)||0;}
+  let meio=null; if(/\bxp\b/.test(s))meio="xp";else if(/nubank|\bnu\b|roxinho/.test(s))meio="nubank";else if(/\bpix\b|inter|d[eé]bito/.test(s))meio="inter";else if(/dinheiro|esp[eé]cie/.test(s))meio="dinheiro";
+  let cat=null; for(const [c,re] of KW){if(re.test(s)){cat=c;break;}}
+  let desc=t.replace(/(\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?)/g," ").replace(/\b(r\$|reais|real|no|na|do|da|com|cart[aã]o|xp|nubank|nu|pix|inter|d[eé]bito|dinheiro|esp[eé]cie)\b/gi," ").replace(/\s+/g," ").trim();
+  desc=desc?desc[0].toUpperCase()+desc.slice(1):"";
+  return {valor,meio,cat,desc};
+}
+function renderDraft(){
+  $("pv").hidden=!$("txt").value.trim();
+  $("pvValor").textContent=brl(draft.valor);
+  $("pvMeio").textContent=(MEIOS.find(m=>m[0]===draft.meio)||MEIOS[0])[1];
+  $("pvCat").textContent=draft.cat;
+  $("salvar").disabled=!(draft.valor>0);
+  [...$("optMeio").children].forEach(b=>b.classList.toggle("on",b.dataset.k===draft.meio));
+  [...$("optCat").children].forEach(b=>b.classList.toggle("on",b.dataset.k===draft.cat));
+}
+$("txt").addEventListener("input",()=>{const p=parse($("txt").value);draft.valor=p.valor;draft.desc=p.desc;if(!draft.meioManual)draft.meio=p.meio||"xp";if(!draft.catManual)draft.cat=p.cat||"Outros";$("msg").textContent="";renderDraft();});
+$("txt").addEventListener("keydown",e=>{if(e.key==="Enter"&&!$("salvar").disabled){e.preventDefault();salvar();}});
+MEIOS.forEach(([k,l])=>{const b=document.createElement("button");b.type="button";b.textContent=l;b.dataset.k=k;b.onclick=()=>{draft.meio=k;draft.meioManual=true;$("optMeio").hidden=true;renderDraft();};$("optMeio").appendChild(b);});
+CATS.forEach(c=>{const b=document.createElement("button");b.type="button";b.textContent=c;b.dataset.k=c;b.onclick=()=>{draft.cat=c;draft.catManual=true;$("optCat").hidden=true;renderDraft();};$("optCat").appendChild(b);});
+$("pvMeio").onclick=()=>{$("optMeio").hidden=!$("optMeio").hidden;$("optCat").hidden=true;};
+$("pvCat").onclick=()=>{$("optCat").hidden=!$("optCat").hidden;$("optMeio").hidden=true;};
+$("pvValor").onclick=()=>$("txt").focus();
+$("falar").onclick=()=>{$("txt").focus();$("dica").hidden=false;setTimeout(()=>{$("dica").hidden=true;},9000);};
+$("salvar").onclick=salvar;
+
+// fila offline: se a internet falhar, guarda e manda depois
+function fila(){return ls.get("meumes_fila")||[];}
+async function enviarFila(){
+  const f=fila(); if(!f.length) return; const resto=[];
+  for(const it of f){ try{ await api(Object.assign({acao:"add"},it)); }catch(e){ if(!e.srv) resto.push(it); } }
+  ls.set("meumes_fila",resto); if(resto.length<f.length) carregar();
+}
+async function salvar(){
+  if(!(draft.valor>0)) return;
+  const it={valor:Math.round(draft.valor*100)/100,meio:draft.meio,categoria:draft.cat,descricao:draft.desc||draft.cat,texto:$("txt").value.trim(),data:isoDate(new Date()),origem:"app"};
+  $("salvar").disabled=true;
+  try{ const r=await api(Object.assign({acao:"add"},it)); $("msg").textContent=r.mensagem||"Anotado."; }
+  catch(e){ if(e.srv){ $("msg").textContent="Não salvou: "+e.message; renderDraft(); return; }
+    const f=fila(); f.push(it); ls.set("meumes_fila",f); $("msg").textContent="Sem internet: guardei aqui e envio sozinho depois."; }
+  $("txt").value=""; draft={valor:0,meio:"xp",cat:"Outros",desc:"",catManual:false,meioManual:false};
+  $("optMeio").hidden=true; $("optCat").hidden=true; renderDraft(); carregar();
+}
+
+async function carregar(){
+  if(carregando) return; carregando=true;
+  try{ const r=await api({acao:"list",ciclo}); gastos=r.gastos||[]; cfg=(r.cfg&&r.cfg.plano)||null; ls.set("meumes_cfgcache",cfg); render(); }
+  catch(e){ $("heroNote").textContent = e.srv ? (e.message==="chave inválida"?"A chave deste aparelho não vale mais. Peça um novo link de configuração ao Claude.":"Erro: "+e.message) : "Sem conexão. Mostrando o último dado salvo."; render(); }
+  finally{ carregando=false; }
+}
+
+function render(){
+  const [ini,fim]=limites(ciclo);
+  $("cycLbl").textContent=pad(ini.getDate())+"/"+MES[ini.getMonth()]+" – "+pad(fim.getDate())+"/"+MES[fim.getMonth()];
+  const teto=cfg?cfg.teto:0, comp=cfg&&cfg.comprometido?(cfg.comprometido[ciclo]||0):0;
+  const fora=fila().filter(g=>cicloDe(g.data)===ciclo);
+  const todos=gastos.concat(fora);
+  const naoViagem=todos.filter(g=>g.categoria!=="Viagem");
+  const usado=naoViagem.filter(g=>g.meio==="xp"||g.meio==="nubank").reduce((a,g)=>a+g.valor,0)+comp;
+  const livre=teto-usado;
+  const hoje=new Date(), tot=Math.round((fim-ini)/864e5)+1;
+  let dec=Math.floor((new Date(hoje.getFullYear(),hoje.getMonth(),hoje.getDate())-ini)/864e5)+1; dec=Math.max(0,Math.min(tot,dec));
+  const ideal=teto*dec/tot;
+  $("livre").textContent=cfg?brl(livre):"R$ —"; $("livre").style.color=livre<0?"var(--bad)":"";
+  $("usado").textContent="Usado: "+brl0(usado)+(comp?" (parcelas "+brl0(comp)+")":"");
+  $("teto").textContent="Teto: "+brl0(teto);
+  $("barCartao").style.width=Math.min(100,teto?usado/teto*100:0)+"%";
+  $("barIdeal").style.left=Math.min(100,teto?ideal/teto*100:0)+"%";
+  const pc=$("pace");
+  if(!cfg){pc.className="chip warn";pc.textContent="carregando";}
+  else if(usado>teto){pc.className="chip bad";pc.textContent="teto estourado";}
+  else if(usado>ideal*1.1){pc.className="chip warn";pc.textContent="acima do ritmo";}
+  else{pc.className="chip ok";pc.textContent="no ritmo";}
+  const diasRest=Math.max(0,tot-dec+1);
+  if(cfg) $("heroNote").textContent=(livre>0&&diasRest>0?"Dá cerca de "+brl0(livre/diasRest)+" por dia até "+pad(fim.getDate())+"/"+MES[fim.getMonth()]+". ":"")+"O traço mostra onde o gasto deveria estar hoje.";
+  const pix=naoViagem.filter(g=>g.meio==="inter"||g.meio==="dinheiro").reduce((a,g)=>a+g.valor,0), pont=cfg?cfg.pontuais:1000;
+  $("pixV").textContent=brl0(pix); $("pixV").style.color=pix>pont?"var(--bad)":""; $("pixBar").style.width=Math.min(100,pix/pont*100)+"%";
+  $("pixNote").textContent="de "+brl0(pont)+" para imprevistos (fora os fixos)";
+  const v=cfg&&cfg.viagem?cfg.viagem:{previsto:0}, via=todos.filter(g=>g.categoria==="Viagem").reduce((a,g)=>a+g.valor,0);
+  $("viaV").textContent=brl0(via); $("viaBar").style.width=v.previsto?Math.min(100,via/v.previsto*100)+"%":"0%";
+  $("viaNote").textContent="de "+brl0(v.previsto||0)+" previstos"+(v.pendente?" · "+v.pendente:"");
+  if(cfg){const r=cfg.reserva||0,m=cfg.meta||25000;$("resV").textContent=brl(r);$("resBar").style.width=Math.min(100,r/m*100)+"%";
+    $("resPct").textContent=Math.round(r/m*100)+"% da meta";$("resMeta").textContent="meta "+brl0(m);
+    $("resData").textContent=cfg.reservaData?"atualizado "+cfg.reservaData.split("-").reverse().join("/"):"";
+    if(!$("resBtn").classList.contains("armed")) $("resBtn").textContent="Registrar transferência de "+brl0(cfg.aporte||2500);}
+  const porCat={}; todos.forEach(g=>{porCat[g.categoria]=(porCat[g.categoria]||0)+g.valor;});
+  const ent=Object.entries(porCat).sort((a,b)=>b[1]-a[1]), mx=ent.length?ent[0][1]:1;
+  const C=$("cats"); C.textContent="";
+  if(!ent.length){const e=document.createElement("div");e.className="empty";e.textContent="Os gastos anotados neste ciclo aparecem aqui, por categoria.";C.appendChild(e);}
+  ent.forEach(([c,val])=>{const d=document.createElement("div");d.className="cat";const a=document.createElement("span");a.textContent=c;const b=document.createElement("span");b.className="num";b.textContent=brl0(val);
+    const bar=document.createElement("div");bar.className="bar";const i=document.createElement("i");i.style.width=(val/mx*100)+"%";bar.appendChild(i);d.append(a,b,bar);C.appendChild(d);});
+  const seg=new Date(hoje); seg.setDate(hoje.getDate()-((hoje.getDay()+6)%7));
+  $("semana").textContent="Esta semana: "+brl0(todos.filter(g=>g.data>=isoDate(seg)).reduce((a,g)=>a+g.valor,0));
+  const L=$("list"); L.textContent="";
+  if(!todos.length){const e=document.createElement("div");e.className="empty";e.textContent="Nenhum gasto anotado neste ciclo. Use \"Anotar gasto\" acima.";L.appendChild(e);return;}
+  let dia=null;
+  [...todos].sort((a,b)=>(b.data+(b.criadoEm||"z")).localeCompare(a.data+(a.criadoEm||"z"))).forEach(g=>{
+    if(g.data!==dia){dia=g.data;const h=document.createElement("div");h.className="day";const p=g.data.split("-");h.textContent=p[2]+" "+MES[+p[1]-1];L.appendChild(h);}
+    const it=document.createElement("div");it.className="it";
+    const d=document.createElement("div");d.className="d";d.textContent=g.descricao+(g.id?"":" (aguardando internet)");
+    const x=document.createElement("div");x.className="x";const val=document.createElement("span");val.className="num";val.textContent=brl(g.valor);x.appendChild(val);
+    if(g.id){const del=document.createElement("button");del.className="del";del.setAttribute("aria-label","Excluir "+g.descricao);del.textContent="×";
+      del.onclick=async()=>{if(!del.classList.contains("confirm")){del.classList.add("confirm");del.textContent="excluir?";setTimeout(()=>{del.classList.remove("confirm");del.textContent="×";},3500);return;}
+        del.disabled=true;try{await api({acao:"del",id:g.id});carregar();}catch(e){del.textContent="erro";del.disabled=false;}};x.appendChild(del);}
+    const s=document.createElement("div");s.className="s";s.textContent=(MEIOS.find(m=>m[0]===g.meio)||["",g.meio])[1]+" · "+g.categoria;
+    it.append(d,x,s);L.appendChild(it);});
+}
+
+$("resBtn").onclick=async()=>{const b=$("resBtn");if(!cfg)return;
+  if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Confirmar: já transferi "+brl0(cfg.aporte||2500);setTimeout(()=>{b.classList.remove("armed");render();},5000);return;}
+  b.classList.remove("armed");b.disabled=true;
+  try{const r=await api({acao:"reserva",valor:cfg.aporte||2500});cfg=r.cfg.plano;ls.set("meumes_cfgcache",cfg);$("resMsg").textContent="Reserva atualizada: "+brl(cfg.reserva)+". Boa!";render();}
+  catch(e){$("resMsg").textContent="Não salvou. Tente de novo.";}finally{b.disabled=false;}};
+$("prev").onclick=()=>{ciclo=addCiclo(ciclo,-1);gastos=[];render();carregar();};
+$("next").onclick=()=>{ciclo=addCiclo(ciclo,1);gastos=[];render();carregar();};
+$("cfgBtn").onclick=()=>{$("cfgArea").hidden=!$("cfgArea").hidden;};
+async function copiar(t){try{await navigator.clipboard.writeText(t);$("cpMsg").textContent="Copiado. Cole no Atalho.";}catch(e){$("cpMsg").textContent="Não deu para copiar automaticamente.";}}
+$("cpUrl").onclick=()=>copiar(conf.u); $("cpKey").onclick=()=>copiar(conf.k);
+$("sair").onclick=()=>{ls.del("meumes_conf");ls.del("meumes_cfgcache");ls.del("meumes_fila");location.replace(location.pathname);};
+
+if(!conf){ $("setup").hidden=false; return; }
+$("app").hidden=false;
+if(veioDoLink && !standalone) $("instalar").hidden=false;
+render(); renderDraft(); enviarFila().then(carregar);
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){enviarFila();carregar();}});
+window.addEventListener("online",enviarFila);
+})();
+</script>
+</body>
+</html>
