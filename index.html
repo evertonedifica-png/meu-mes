@@ -371,7 +371,7 @@ function render(){
   if(cfg){const r=cfg.reserva||0,m=cfg.meta||25000;$("resV").textContent=brl(r);$("resBar").style.width=Math.min(100,r/m*100)+"%";
     $("resPct").textContent=Math.round(r/m*100)+"% da meta";$("resMeta").textContent="meta "+brl0(m);
     $("resData").textContent=cfg.reservaData?"atualizado "+cfg.reservaData.split("-").reverse().join("/"):"";
-    if(!$("resBtn").classList.contains("armed")) $("resBtn").textContent="Registrar transferência de "+brl0(cfg.aporte||2500);}
+    if(!$("resBtn").classList.contains("armed")) $("resBtn").textContent="Registrar transferência de "+brl0(aporteRes());}
   renderCaixinhas();
   const porCat={}; todos.forEach(g=>{porCat[g.categoria]=(porCat[g.categoria]||0)+g.valor;});
   const ent=Object.entries(porCat).sort((a,b)=>b[1]-a[1]), mx=ent.length?ent[0][1]:1;
@@ -478,6 +478,7 @@ $("caBtn").onclick=async()=>{
 };
 
 // ---- caixinhas (anuais, Canadá, viagens): saldo virtual dentro do dinheiro aplicado ----
+function aporteRes(){const c=cicloDe(isoDate(new Date()));return cfg&&cfg.aporteMensal&&cfg.aporteMensal.length?mensalEm({mensal:cfg.aporteMensal},c):((cfg&&cfg.aporte)||2500);}
 function mensalEm(o,c){let v=0;(o.mensal||[]).slice().sort((a,b)=>a.de.localeCompare(b.de)).forEach(f=>{if(f.de<=c)v=f.valor;});return v;}
 async function movCx(id,valor,motivo,okMsg){
   try{const r=await api({acao:"objetivo",id,valor,motivo});cfg=r.cfg.plano;ls.set("meumes_cfgcache",cfg);$("cxMsg").textContent=okMsg;render();return true;}
@@ -518,9 +519,9 @@ function renderCaixinhas(){
 }
 
 $("resBtn").onclick=async()=>{const b=$("resBtn");if(!cfg)return;
-  if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Confirmar: já transferi "+brl0(cfg.aporte||2500);setTimeout(()=>{b.classList.remove("armed");render();},5000);return;}
+  if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Confirmar: já transferi "+brl0(aporteRes());setTimeout(()=>{b.classList.remove("armed");render();},5000);return;}
   b.classList.remove("armed");b.disabled=true;
-  try{const r=await api({acao:"reserva",valor:cfg.aporte||2500});cfg=r.cfg.plano;ls.set("meumes_cfgcache",cfg);$("resMsg").textContent="Reserva atualizada: "+brl(cfg.reserva)+". Boa!";render();}
+  try{const r=await api({acao:"reserva",valor:aporteRes()});cfg=r.cfg.plano;ls.set("meumes_cfgcache",cfg);$("resMsg").textContent="Reserva atualizada: "+brl(cfg.reserva)+". Boa!";render();}
   catch(e){$("resMsg").textContent="Não salvou. Tente de novo.";}finally{b.disabled=false;}};
 $("prev").onclick=()=>{ciclo=addCiclo(ciclo,-1);gastos=[];render();carregar();};
 $("next").onclick=()=>{ciclo=addCiclo(ciclo,1);gastos=[];render();carregar();};
