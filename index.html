@@ -88,6 +88,24 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .note{font-size:12px;color:var(--muted)}
 .cfgbox{display:grid;gap:8px}
 .cfgbox code{font-family:var(--f-num);font-size:11px;overflow-wrap:anywhere;background:var(--soft);padding:6px 8px;border-radius:8px}
+.ct{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:11px 0;border-top:1px solid var(--line);align-items:center}
+.ct:first-child{border-top:0}
+.ct .d{overflow-wrap:anywhere;font-weight:500}
+.ct .s{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.ct .acts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.ct .acts button,.ct .acts a{font:inherit;font-size:13px;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none}
+.ct .acts .pg{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.ct .acts .pg.confirm{background:var(--ok);border-color:var(--ok)}
+.ct.mae .d,.ct.paga .d{font-weight:400;color:var(--muted)}
+.ct .ed{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr auto;gap:6px;margin-top:4px}
+.ct .ed input,.cadd input{font:inherit;font-size:16px;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);min-width:0;width:100%}
+.ct .ed button,.cadd button{font:inherit;font-weight:600;font-size:14px;padding:9px 12px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.cadd{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px}
+.cadd input:first-child{grid-column:1/-1}
+.cadd button{grid-column:1/-1}
+.sub{margin-top:8px}
+.sub summary{font-size:13px;color:var(--muted);cursor:pointer;padding:6px 0}
+.tot{font-family:var(--f-num);font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion: no-preference){.bar i{transition:width .5s ease}}
 </style>
 </head>
@@ -141,6 +159,23 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     <div class="opts" id="optCat" hidden></div>
     <button class="btn" id="salvar" disabled>Salvar</button>
     <div class="msg" id="msg" role="status"></div>
+  </section>
+
+  <section class="card" aria-labelledby="ctT">
+    <h2 id="ctT">Contas a pagar</h2>
+    <div class="tot" id="ctTot"></div>
+    <div id="ctList"><div class="empty">Carregando contas…</div></div>
+    <details class="sub" id="ctPagasBox" hidden><summary id="ctPagasSum">Pagas</summary><div id="ctPagas"></div></details>
+    <details class="sub" id="ctMaeBox" hidden><summary id="ctMaeSum">Contas da mãe</summary><div id="ctMae"></div></details>
+    <details class="sub" id="ctAddBox"><summary>+ Adicionar conta</summary>
+      <div class="cadd">
+        <input id="caDesc" type="text" placeholder="O que é (ex.: IPVA)" autocomplete="off" maxlength="80">
+        <input id="caVal" type="text" inputmode="decimal" placeholder="Valor" autocomplete="off">
+        <input id="caVen" type="date" aria-label="Vencimento">
+        <button id="caBtn" type="button">Adicionar</button>
+      </div>
+    </details>
+    <div class="msg" id="ctMsg" role="status"></div>
   </section>
 
   <div class="grid2">
@@ -343,6 +378,87 @@ function render(){
     it.append(d,x,s);L.appendChild(it);});
 }
 
+// ---- contas a pagar (vêm do Gmail pela aba Contas; independem do ciclo) ----
+let contas=ls.get("meumes_contas")||null, carregandoC=false;
+const numBr=s=>{s=String(s||"").replace(/[^\d.,]/g,"");s=/\.\d{3}/.test(s)?s.replace(/\./g,"").replace(",","."):s.replace(",",".");return parseFloat(s)||0;};
+const dBr=iso=>{const p=iso.split("-");return p[2]+"/"+p[1];};
+function diasAte(iso){const h=new Date();const a=new Date(h.getFullYear(),h.getMonth(),h.getDate());const [y,m,d]=iso.split("-").map(Number);return Math.round((new Date(y,m-1,d)-a)/864e5);}
+function prazo(c){
+  if(c.status==="paga") return ["ok","paga"+(c.pagoEm?" "+dBr(c.pagoEm):"")];
+  if(c.status==="mae") return ["","mãe"];
+  if(!c.vencimento||!c.valor) return ["warn","completar"];
+  const n=diasAte(c.vencimento);
+  if(n<0) return ["bad","atrasada "+(-n)+"d"]; if(n===0) return ["bad","vence hoje"]; if(n===1) return ["warn","amanhã"];
+  if(n<=3) return ["warn","em "+n+" dias"]; return ["ok","em "+n+" dias"];
+}
+async function carregarContas(){
+  if(carregandoC) return; carregandoC=true;
+  try{ const r=await api({acao:"contas"}); contas=r.contas||[]; ls.set("meumes_contas",contas); renderContas(); }
+  catch(e){ if(!contas) $("ctList").innerHTML='<div class="empty">Não consegui carregar as contas agora.</div>'; else renderContas(); }
+  finally{ carregandoC=false; }
+}
+async function acaoConta(body,okMsg){
+  try{ await api(body); $("ctMsg").textContent=okMsg||""; await carregarContas(); return true; }
+  catch(e){ $("ctMsg").textContent=e.srv?"Não salvou: "+e.message:"Sem internet: tente de novo."; return false; }
+}
+function chip(cls,t){const s=document.createElement("span");s.className="chip "+cls;s.textContent=t;return s;}
+function bt(t,fn,cls){const b=document.createElement("button");b.type="button";b.textContent=t;if(cls)b.className=cls;b.onclick=fn;return b;}
+function editor(c,linha){
+  const ed=document.createElement("div");ed.className="ed";
+  const v=document.createElement("input");v.type="text";v.inputMode="decimal";v.placeholder="Valor";v.value=c.valor?String(c.valor).replace(".",","):"";
+  const d=document.createElement("input");d.type="date";d.value=c.vencimento||"";d.setAttribute("aria-label","Vencimento");
+  const ok=bt("Salvar",async()=>{ok.disabled=true;const val=numBr(v.value);
+    await acaoConta({acao:"conta_set",id:c.id,valor:val>0?val:"",vencimento:d.value},"Conta atualizada.");ok.disabled=false;});
+  ed.append(v,d,ok); linha.appendChild(ed); v.focus();
+}
+function linhaConta(c){
+  const it=document.createElement("div");it.className="ct "+(c.status==="mae"?"mae":c.status==="paga"?"paga":"");
+  const d=document.createElement("div");d.className="d";d.textContent=c.descricao;
+  const val=document.createElement("span");val.className="num";val.textContent=c.valor?brl(c.valor):"R$ —";
+  const s=document.createElement("div");s.className="s";
+  const [cls,t]=prazo(c); s.appendChild(chip(cls,t));
+  if(c.vencimento&&c.status!=="paga"){const x=document.createElement("span");x.textContent="vence "+dBr(c.vencimento);s.appendChild(x);}
+  it.append(d,val,s);
+  const a=document.createElement("div");a.className="acts";
+  if(c.status==="paga"){ a.appendChild(bt("Reabrir",()=>acaoConta({acao:"conta_reabrir",id:c.id},"Conta reaberta."))); }
+  else{
+    if(c.status!=="mae"){ const pg=bt("Paguei",async()=>{
+        if(!pg.classList.contains("confirm")){pg.classList.add("confirm");pg.textContent="Confirmar pagamento";setTimeout(()=>{pg.classList.remove("confirm");pg.textContent="Paguei";},4000);return;}
+        pg.disabled=true; if(!await acaoConta({acao:"conta_paga",id:c.id},"Marcada como paga.")) pg.disabled=false;},"pg"); a.appendChild(pg); }
+    if(c.codigo) a.appendChild(bt("Copiar código",async function(){try{await navigator.clipboard.writeText(c.codigo);this.textContent="Copiado ✓";}catch(e){this.textContent="Não copiou";}setTimeout(()=>{this.textContent="Copiar código";},2500);}));
+    a.appendChild(bt(c.status==="completar"?"Completar":"Editar",()=>{if(!it.querySelector(".ed")) editor(c,it);}));
+    if(c.link&&/^https:\/\/mail\.google\.com\//.test(c.link)){const l=document.createElement("a");l.href=c.link;l.target="_blank";l.rel="noopener noreferrer";l.textContent="E-mail";a.appendChild(l);}
+    const ig=bt("Ignorar",async()=>{if(!ig.classList.contains("on")){ig.classList.add("on");ig.textContent="Ignorar mesmo?";setTimeout(()=>{ig.classList.remove("on");ig.textContent="Ignorar";},3500);return;}
+      ig.disabled=true; await acaoConta({acao:"conta_ignorar",id:c.id},"Conta ignorada.");}); a.appendChild(ig);
+  }
+  it.appendChild(a); return it;
+}
+function renderContas(){
+  if(!contas) return;
+  const abertas=contas.filter(c=>c.status==="aberta"||c.status==="completar")
+    .sort((x,y)=>(x.vencimento||"9999").localeCompare(y.vencimento||"9999"));
+  const pagas=contas.filter(c=>c.status==="paga").sort((x,y)=>(y.pagoEm||"").localeCompare(x.pagoEm||""));
+  const mae=contas.filter(c=>c.status==="mae");
+  const L=$("ctList"); L.textContent="";
+  if(!abertas.length){const e=document.createElement("div");e.className="empty";e.textContent="Nenhuma conta em aberto. 🎉";L.appendChild(e);}
+  abertas.forEach(c=>L.appendChild(linhaConta(c)));
+  const tot=abertas.reduce((a,c)=>a+(c.valor||0),0);
+  const atras=abertas.filter(c=>c.vencimento&&diasAte(c.vencimento)<=0).length;
+  $("ctTot").textContent=abertas.length?brl0(tot)+" em aberto"+(atras?" · "+atras+(atras>1?" vencem hoje ou estão atrasadas":" vence hoje ou está atrasada"):""):"";
+  $("ctTot").style.color=atras?"var(--bad)":"";
+  $("ctPagasBox").hidden=!pagas.length; $("ctPagasSum").textContent="Pagas recentemente ("+pagas.length+")";
+  $("ctPagas").textContent=""; pagas.forEach(c=>$("ctPagas").appendChild(linhaConta(c)));
+  $("ctMaeBox").hidden=!mae.length; $("ctMaeSum").textContent="Contas da mãe ("+mae.length+"), sem alerta";
+  $("ctMae").textContent=""; mae.forEach(c=>$("ctMae").appendChild(linhaConta(c)));
+}
+$("caBtn").onclick=async()=>{
+  const desc=$("caDesc").value.trim(), val=numBr($("caVal").value), ven=$("caVen").value;
+  if(!desc){$("ctMsg").textContent="Diga o que é a conta.";$("caDesc").focus();return;}
+  $("caBtn").disabled=true;
+  if(await acaoConta({acao:"conta_add",descricao:desc,valor:val>0?val:"",vencimento:ven},"Conta adicionada.")){$("caDesc").value="";$("caVal").value="";$("caVen").value="";$("ctAddBox").open=false;}
+  $("caBtn").disabled=false;
+};
+
 $("resBtn").onclick=async()=>{const b=$("resBtn");if(!cfg)return;
   if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Confirmar: já transferi "+brl0(cfg.aporte||2500);setTimeout(()=>{b.classList.remove("armed");render();},5000);return;}
   b.classList.remove("armed");b.disabled=true;
@@ -358,8 +474,8 @@ $("sair").onclick=()=>{ls.del("meumes_conf");ls.del("meumes_cfgcache");ls.del("m
 if(!conf){ $("setup").hidden=false; return; }
 $("app").hidden=false;
 if(veioDoLink && !standalone) $("instalar").hidden=false;
-render(); renderDraft(); enviarFila().then(carregar);
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){enviarFila();carregar();}});
+render(); renderDraft(); renderContas(); enviarFila().then(carregar); carregarContas();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){enviarFila();carregar();carregarContas();}});
 window.addEventListener("online",enviarFila);
 })();
 </script>
