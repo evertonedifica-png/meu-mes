@@ -106,6 +106,16 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .sub{margin-top:8px}
 .sub summary{font-size:13px;color:var(--muted);cursor:pointer;padding:6px 0}
 .tot{font-family:var(--f-num);font-size:13px;color:var(--muted)}
+.cx{display:grid;gap:6px;padding:12px 0;border-top:1px solid var(--line)}
+#cxList .cx:first-child{border-top:0}
+.cx .v{font-family:var(--f-display);font-size:20px;font-weight:700}
+.cx .acts{display:flex;flex-wrap:wrap;gap:6px}
+.cx .acts button{font:inherit;font-size:13px;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+.cx .acts .pg{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.cx .acts .pg.confirm{background:var(--ok);border-color:var(--ok)}
+.cx .ed{display:grid;grid-template-columns:1fr auto;gap:6px}
+.cx .ed input{font:inherit;font-size:16px;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);min-width:0}
+.cx .ed button{font:inherit;font-weight:600;font-size:14px;padding:9px 12px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
 @media (prefers-reduced-motion: no-preference){.bar i{transition:width .5s ease}}
 </style>
 </head>
@@ -200,6 +210,13 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     <div class="row note"><span id="resPct">—</span><span id="resMeta">meta —</span></div>
     <button class="btn ghost" id="resBtn">Registrar transferência para a reserva</button>
     <div class="msg" id="resMsg" role="status"></div>
+  </section>
+
+  <section class="card" id="cxCard" hidden aria-labelledby="cxT">
+    <h2 id="cxT">Caixinhas</h2>
+    <div class="note">Separações do dinheiro aplicado. No dia do salário, guarde o valor do mês de cada uma.</div>
+    <div id="cxList"></div>
+    <div class="msg" id="cxMsg" role="status"></div>
   </section>
 
   <section class="card">
@@ -355,6 +372,7 @@ function render(){
     $("resPct").textContent=Math.round(r/m*100)+"% da meta";$("resMeta").textContent="meta "+brl0(m);
     $("resData").textContent=cfg.reservaData?"atualizado "+cfg.reservaData.split("-").reverse().join("/"):"";
     if(!$("resBtn").classList.contains("armed")) $("resBtn").textContent="Registrar transferência de "+brl0(cfg.aporte||2500);}
+  renderCaixinhas();
   const porCat={}; todos.forEach(g=>{porCat[g.categoria]=(porCat[g.categoria]||0)+g.valor;});
   const ent=Object.entries(porCat).sort((a,b)=>b[1]-a[1]), mx=ent.length?ent[0][1]:1;
   const C=$("cats"); C.textContent="";
@@ -458,6 +476,46 @@ $("caBtn").onclick=async()=>{
   if(await acaoConta({acao:"conta_add",descricao:desc,valor:val>0?val:"",vencimento:ven},"Conta adicionada.")){$("caDesc").value="";$("caVal").value="";$("caVen").value="";$("ctAddBox").open=false;}
   $("caBtn").disabled=false;
 };
+
+// ---- caixinhas (anuais, Canadá, viagens): saldo virtual dentro do dinheiro aplicado ----
+function mensalEm(o,c){let v=0;(o.mensal||[]).slice().sort((a,b)=>a.de.localeCompare(b.de)).forEach(f=>{if(f.de<=c)v=f.valor;});return v;}
+async function movCx(id,valor,motivo,okMsg){
+  try{const r=await api({acao:"objetivo",id,valor,motivo});cfg=r.cfg.plano;ls.set("meumes_cfgcache",cfg);$("cxMsg").textContent=okMsg;render();return true;}
+  catch(e){$("cxMsg").textContent=e.srv?"Não salvou: "+e.message:"Sem internet: tente de novo.";return false;}
+}
+function renderCaixinhas(){
+  const objs=(cfg&&cfg.objetivos)||[]; $("cxCard").hidden=!objs.length; if(!objs.length) return;
+  const L=$("cxList"); if(L.querySelector(".ed")) return;   // não redesenha com a retirada aberta
+  L.textContent="";
+  objs.forEach(o=>{
+    const d=document.createElement("div");d.className="cx";
+    const top=document.createElement("div");top.className="row";const h=document.createElement("span");h.textContent=o.nome;h.style.fontWeight="600";
+    const pz=document.createElement("span");pz.className="note";pz.textContent=o.prazo?"até "+o.prazo:"";top.append(h,pz);
+    const v=document.createElement("div");v.className="v num";v.textContent=brl(o.saldo||0);
+    d.append(top,v);
+    if(o.meta){const bar=document.createElement("div");bar.className="bar";const i=document.createElement("i");i.style.width=Math.min(100,(o.saldo||0)/o.meta*100)+"%";bar.appendChild(i);
+      const rn=document.createElement("div");rn.className="row note";const a=document.createElement("span");a.textContent=Math.round((o.saldo||0)/o.meta*100)+"% da meta";
+      const b=document.createElement("span");b.textContent="meta "+brl0(o.meta);rn.append(a,b);d.append(bar,rn);}
+    if(o.nota){const n=document.createElement("div");n.className="note";n.textContent=o.nota;d.appendChild(n);}
+    const ap=mensalEm(o,ciclo), acts=document.createElement("div");acts.className="acts";
+    const jaGuardou=(o.historico||[]).some(x=>x.motivo==="aporte do mês"&&x.data&&cicloDe(x.data)===ciclo);
+    if(ap>0&&jaGuardou){acts.appendChild(chip("ok","✓ "+brl0(ap)+" guardado este mês"));}
+    else if(ap>0){const g=bt("Guardei "+brl0(ap)+" este mês",async()=>{
+        if(!g.classList.contains("confirm")){g.classList.add("confirm");g.textContent="Confirmar: guardei "+brl0(ap);setTimeout(()=>{g.classList.remove("confirm");g.textContent="Guardei "+brl0(ap)+" este mês";},4000);return;}
+        g.disabled=true;if(!await movCx(o.id,ap,"aporte do mês",o.nome+": +"+brl0(ap)+". Boa!"))g.disabled=false;},"pg");acts.appendChild(g);}
+    acts.appendChild(bt("Usei…",()=>{if(d.querySelector(".ed"))return;const ed=document.createElement("div");ed.className="ed";
+      const inp=document.createElement("input");inp.type="text";inp.inputMode="decimal";inp.placeholder="Quanto saiu da caixinha";
+      const ok=bt("Confirmar",async()=>{const val=numBr(inp.value);if(!(val>0)){inp.focus();return;}ok.disabled=true;
+        if(await movCx(o.id,-val,"retirada",o.nome+": −"+brl0(val)+" registrado.")){ed.remove();renderCaixinhas();}else ok.disabled=false;});
+      ed.append(inp,ok);d.appendChild(ed);inp.focus();}));
+    acts.appendChild(bt("Outro valor",()=>{if(d.querySelector(".ed"))return;const ed=document.createElement("div");ed.className="ed";
+      const inp=document.createElement("input");inp.type="text";inp.inputMode="decimal";inp.placeholder="Quanto guardou";
+      const ok=bt("Guardar",async()=>{const val=numBr(inp.value);if(!(val>0)){inp.focus();return;}ok.disabled=true;
+        if(await movCx(o.id,val,"aporte",o.nome+": +"+brl0(val)+".")){ed.remove();renderCaixinhas();}else ok.disabled=false;});
+      ed.append(inp,ok);d.appendChild(ed);inp.focus();}));
+    d.appendChild(acts);L.appendChild(d);
+  });
+}
 
 $("resBtn").onclick=async()=>{const b=$("resBtn");if(!cfg)return;
   if(!b.classList.contains("armed")){b.classList.add("armed");b.textContent="Confirmar: já transferi "+brl0(cfg.aporte||2500);setTimeout(()=>{b.classList.remove("armed");render();},5000);return;}
