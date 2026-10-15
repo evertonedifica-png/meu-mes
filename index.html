@@ -292,6 +292,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 <script>
 (function(){
 "use strict";
+const VERSAO="2026-10-15c";   // mudar a cada publicação: o app compara com a do servidor e se atualiza sozinho
 const MEIOS=[["xp","Cartão XP"],["nubank","Cartão Nubank"],["inter","Pix/Débito Inter"],["dinheiro","Dinheiro"]];
 const CATS=["Mercado e padaria","Restaurantes","Delivery (iFood)","Transporte","Lazer","Saúde e farmácia","Compras","Cuidados pessoais","Academia","Casa","Presentes","Viagem","Outros"];
 const KW=[["Viagem",/viagem|morro|cuiab|vilhena|pousada|hotel|passagem|aluguel de carro|locadora/],["Delivery (iFood)",/ifood|delivery/],
@@ -320,6 +321,8 @@ if(veioDoLink) ls.set("meumes_conf",conf);
 const standalone=window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;
 
 let cfg=ls.get("meumes_cfgcache")||null, gastos=[], carregando=false;
+// últimos gastos carregados ficam no aparelho: aparecem na hora, e o servidor atualiza depois
+const gCache=c=>{const g=ls.get("meumes_gastos");return g&&g.ciclo===c&&Array.isArray(g.gastos)?g.gastos:[];};
 let draft={valor:0,meio:"xp",cat:"Outros",desc:"",catManual:false,meioManual:false};
 
 async function api(body){
@@ -330,6 +333,7 @@ function cicloDe(dstr){const [y,m,d]=dstr.split("-").map(Number);const dia=(cfg&
 function addCiclo(c,n){let [y,m]=c.split("-").map(Number);let t=y*12+m-1+n;return Math.floor(t/12)+"-"+pad(t%12+1);}
 function limites(c){const dia=(cfg&&cfg.diaSalario)||10;const [y,m]=c.split("-").map(Number);return [new Date(y,m-1,dia),new Date(y,m,dia-1)];}
 let ciclo=cicloDe(isoDate(new Date()));
+gastos=gCache(ciclo);
 
 function parse(t){
   const s=t.toLowerCase();
@@ -380,9 +384,9 @@ async function salvar(){
 
 async function carregar(){
   if(carregando) return; carregando=true;
-  try{ const r=await api({acao:"list",ciclo}); gastos=r.gastos||[]; cfg=(r.cfg&&r.cfg.plano)||null; ls.set("meumes_cfgcache",cfg);
+  try{ const c=ciclo, r=await api({acao:"list",ciclo:c}); if(c!==ciclo) return; gastos=r.gastos||[]; ls.set("meumes_gastos",{ciclo:c,gastos}); cfg=(r.cfg&&r.cfg.plano)||null; ls.set("meumes_cfgcache",cfg);
     if(r.cfg&&r.cfg.previsao){prev=r.cfg.previsao;ls.set("meumes_prev",prev);} render(); }
-  catch(e){ $("heroNote").textContent = e.srv ? (e.message==="chave inválida"?"A chave deste aparelho não vale mais. Peça um novo link de configuração ao Claude.":"Erro: "+e.message) : "Sem conexão. Mostrando o último dado salvo."; render(); }
+  catch(e){ render(); $("heroNote").textContent = e.srv ? (e.message==="chave inválida"?"A chave deste aparelho não vale mais. Peça um novo link de configuração ao Claude.":"Erro: "+e.message) : "Sem conexão. Mostrando o último dado salvo."; }
   finally{ carregando=false; }
 }
 
@@ -693,19 +697,25 @@ $("resBtn").onclick=async()=>{const b=$("resBtn");if(!cfg)return;
   b.classList.remove("armed");b.disabled=true;
   try{const r=await api({acao:"reserva",valor:aporteRes()});cfg=r.cfg.plano;ls.set("meumes_cfgcache",cfg);$("resMsg").textContent="Reserva atualizada: "+brl(cfg.reserva)+". Boa!";render();}
   catch(e){$("resMsg").textContent="Não salvou. Tente de novo.";}finally{b.disabled=false;}};
-$("prev").onclick=()=>{ciclo=addCiclo(ciclo,-1);gastos=[];render();carregar();};
-$("next").onclick=()=>{ciclo=addCiclo(ciclo,1);gastos=[];render();carregar();};
+$("prev").onclick=()=>{ciclo=addCiclo(ciclo,-1);gastos=gCache(ciclo);render();carregando=false;carregar();};
+$("next").onclick=()=>{ciclo=addCiclo(ciclo,1);gastos=gCache(ciclo);render();carregando=false;carregar();};
 $("cfgBtn").onclick=()=>{$("cfgArea").hidden=!$("cfgArea").hidden;};
 async function copiar(t){try{await navigator.clipboard.writeText(t);$("cpMsg").textContent="Copiado. Cole no Atalho.";}catch(e){$("cpMsg").textContent="Não deu para copiar automaticamente.";}}
 $("cpUrl").onclick=()=>copiar(conf.u); $("cpKey").onclick=()=>copiar(conf.k);
-$("sair").onclick=()=>{ls.del("meumes_conf");ls.del("meumes_cfgcache");ls.del("meumes_fila");ls.del("meumes_pix");ls.del("meumes_contas");ls.del("meumes_prev");ls.del("meumes_aba");location.replace(location.pathname);};
+$("sair").onclick=()=>{ls.del("meumes_conf");ls.del("meumes_cfgcache");ls.del("meumes_fila");ls.del("meumes_pix");ls.del("meumes_contas");ls.del("meumes_prev");ls.del("meumes_aba");ls.del("meumes_gastos");location.replace(location.pathname);};
 
 if(!conf){ $("setup").hidden=false; return; }
 $("app").hidden=false;
 if(veioDoLink && !standalone) $("instalar").hidden=false;
 aba(ls.get("meumes_aba")||"Inicio");
 render(); renderDraft(); renderContas(); enviarFila().then(carregar); carregarContas(); carregarPix();
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){enviarFila();carregar();carregarContas();carregarPix();}});
+// versão nova publicada? baixa por cima do cache do iPhone e recarrega (uma vez por versão)
+async function checarVersao(){
+  try{ const r=await fetch(location.pathname,{cache:"reload",credentials:"omit"}); const m=(await r.text()).match(/const VERSAO="([^"]+)"/);
+    if(m&&m[1]!==VERSAO&&ls.get("meumes_tentouVersao")!==m[1]){ ls.set("meumes_tentouVersao",m[1]); location.reload(); } }catch(e){}
+}
+checarVersao();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){checarVersao();enviarFila();carregar();carregarContas();carregarPix();}});
 window.addEventListener("online",enviarFila);
 })();
 </script>
