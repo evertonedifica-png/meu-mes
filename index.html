@@ -188,6 +188,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     <div class="msg" id="ctMsg" role="status"></div>
   </section>
 
+  <section class="card" id="pxCard" hidden aria-labelledby="pxT">
+    <div class="row"><h2 id="pxT">Pix do mês</h2><span class="tot" id="pxCont"></span></div>
+    <div class="bar" style="margin:8px 0 4px"><i id="pxBar" style="width:0%"></i></div>
+    <div class="tot" id="pxTot"></div>
+    <div id="pxList"></div>
+    <details class="sub" id="pxFeitosBox" hidden><summary id="pxFeitosSum">Feitos</summary><div id="pxFeitos"></div></details>
+    <div class="msg" id="pxMsg" role="status"></div>
+  </section>
+
   <div class="grid2">
     <section class="card mini">
       <h2>Pix e débito</h2>
@@ -477,6 +486,69 @@ $("caBtn").onclick=async()=>{
   $("caBtn").disabled=false;
 };
 
+// ---- Pix do mês: transferências fixas; cada "vez" é um check no ciclo (não entra como gasto) ----
+let pix=ls.get("meumes_pix")||null, carregandoP=false;
+function pixVenc(c,dia){const dSal=(cfg&&cfg.diaSalario)||10;let [y,m]=c.split("-").map(Number);if(dia<dSal){m++;if(m>12){m=1;y++;}}
+  const ult=new Date(y,m,0).getDate();return y+"-"+pad(m)+"-"+pad(Math.min(dia,ult));}
+async function carregarPix(){
+  if(carregandoP) return; carregandoP=true; const c=ciclo;
+  try{ const r=await api({acao:"pix",ciclo:c}); if(c!==ciclo) return; pix=r; ls.set("meumes_pix",pix); renderPix(); }
+  catch(e){ if(pix) renderPix(); }
+  finally{ carregandoP=false; }
+}
+async function acaoPix(body,okMsg){
+  try{ const r=await api(Object.assign({ciclo},body)); pix=r; ls.set("meumes_pix",pix); $("pxMsg").textContent=okMsg||""; renderPix(); return true; }
+  catch(e){ $("pxMsg").textContent=e.srv?"Não salvou: "+e.message:"Sem internet: tente de novo."; return false; }
+}
+function vezesPix(){
+  if(!pix||pix.ciclo!==ciclo) return [];
+  const out=[]; (pix.itens||[]).forEach(it=>(it.dias||[]).forEach((dia,n)=>{
+    const pg=((pix.pagos||{})[it.id]||[]).find(x=>x.n===n);
+    out.push({it,n,venc:pixVenc(ciclo,dia),pg});}));
+  // mensais por data; quinzenais (psicóloga, diarista) sempre por último
+  const q=v=>(v.it.dias||[]).length>1?1:0;
+  return out.sort((a,b)=>q(a)-q(b)||a.venc.localeCompare(b.venc)||a.it.nome.localeCompare(b.it.nome));
+}
+function linhaPix(v){
+  const {it,n,pg}=v, multi=(it.dias||[]).length>1;
+  const el=document.createElement("div");el.className="ct"+(pg?" paga":"");
+  const d=document.createElement("div");d.className="d";d.textContent=it.nome+(multi?" · "+(n+1)+"ª vez":"");
+  const val=document.createElement("span");val.className="num";val.textContent=pg?brl(pg.valor):(it.variavel?"~":"")+brl(it.valor);
+  const s=document.createElement("div");s.className="s";
+  if(pg){ s.appendChild(chip("ok","feito "+dBr(pg.data))); }
+  else{ const k=diasAte(v.venc); s.appendChild(k<0?chip("bad","atrasado "+(-k)+"d"):k===0?chip("bad","hoje"):k<=3?chip("warn",k===1?"amanhã":"em "+k+" dias"):chip("ok","dia "+dBr(v.venc))); }
+  if(it.quem){const q=document.createElement("span");q.textContent=it.quem+(pg&&pg.email?" · baixa automática (e-mail do banco)":"");s.appendChild(q);}
+  el.append(d,val,s);
+  const a=document.createElement("div");a.className="acts";
+  if(pg){ a.appendChild(bt("Desfazer",()=>acaoPix({acao:"pix_desfazer",id:it.id,n},"Desfeito."))); }
+  else{
+    const ok=bt("Paguei",async()=>{
+      if(!ok.classList.contains("confirm")){ok.classList.add("confirm");ok.textContent="Confirmar "+brl0(it.valor);setTimeout(()=>{ok.classList.remove("confirm");ok.textContent="Paguei";},4000);return;}
+      ok.disabled=true; if(!await acaoPix({acao:"pix_paguei",id:it.id,n},it.nome+": feito ✓")) ok.disabled=false;},"pg");
+    a.appendChild(ok);
+    a.appendChild(bt("Outro valor",()=>{if(el.querySelector(".ed"))return;const ed=document.createElement("div");ed.className="ed";ed.style.gridTemplateColumns="1fr auto";
+      const inp=document.createElement("input");inp.type="text";inp.inputMode="decimal";inp.placeholder="Quanto foi";
+      const b=bt("Paguei",async()=>{const x=numBr(inp.value);if(!(x>0)){inp.focus();return;}b.disabled=true;
+        if(!await acaoPix({acao:"pix_paguei",id:it.id,n,valor:x},it.nome+": "+brl(x)+" ✓")) b.disabled=false;});
+      ed.append(inp,b);el.appendChild(ed);inp.focus();}));
+    if(it.chave) a.appendChild(bt("Copiar chave",async function(){try{await navigator.clipboard.writeText(it.chave);this.textContent="Copiada ✓";}catch(e){this.textContent="Não copiou";}setTimeout(()=>{this.textContent="Copiar chave";},2500);}));
+  }
+  el.appendChild(a); return el;
+}
+function renderPix(){
+  const vs=vezesPix(); $("pxCard").hidden=!(pix&&(pix.itens||[]).length); if($("pxCard").hidden) return;
+  const L=$("pxList"); if(L.querySelector(".ed")) return;   // não redesenha com "Outro valor" aberto
+  const fal=vs.filter(v=>!v.pg), feitos=vs.filter(v=>v.pg);
+  $("pxCont").textContent=vs.length?feitos.length+" de "+vs.length+" feitos":"";
+  $("pxBar").style.width=(vs.length?feitos.length/vs.length*100:0)+"%";
+  const falta=fal.reduce((s,v)=>s+(v.it.valor||0),0), atras=fal.filter(v=>diasAte(v.venc)<=0).length;
+  $("pxTot").textContent=!pix||pix.ciclo!==ciclo?"Carregando…":fal.length?"Faltam "+brl0(falta)+(atras?" · "+atras+(atras>1?" para hoje ou atrasados":" para hoje ou atrasado"):""):"Tudo feito neste ciclo. 🎉";
+  $("pxTot").style.color=atras?"var(--bad)":"";
+  L.textContent=""; fal.forEach(v=>L.appendChild(linhaPix(v)));
+  $("pxFeitosBox").hidden=!feitos.length; $("pxFeitosSum").textContent="Feitos ("+feitos.length+")";
+  $("pxFeitos").textContent=""; feitos.forEach(v=>$("pxFeitos").appendChild(linhaPix(v)));
+}
+
 // ---- caixinhas (anuais, Canadá, viagens): saldo virtual dentro do dinheiro aplicado ----
 function aporteRes(){const c=cicloDe(isoDate(new Date()));return cfg&&cfg.aporteMensal&&cfg.aporteMensal.length?mensalEm({mensal:cfg.aporteMensal},c):((cfg&&cfg.aporte)||2500);}
 function mensalEm(o,c){let v=0;(o.mensal||[]).slice().sort((a,b)=>a.de.localeCompare(b.de)).forEach(f=>{if(f.de<=c)v=f.valor;});return v;}
@@ -523,18 +595,18 @@ $("resBtn").onclick=async()=>{const b=$("resBtn");if(!cfg)return;
   b.classList.remove("armed");b.disabled=true;
   try{const r=await api({acao:"reserva",valor:aporteRes()});cfg=r.cfg.plano;ls.set("meumes_cfgcache",cfg);$("resMsg").textContent="Reserva atualizada: "+brl(cfg.reserva)+". Boa!";render();}
   catch(e){$("resMsg").textContent="Não salvou. Tente de novo.";}finally{b.disabled=false;}};
-$("prev").onclick=()=>{ciclo=addCiclo(ciclo,-1);gastos=[];render();carregar();};
-$("next").onclick=()=>{ciclo=addCiclo(ciclo,1);gastos=[];render();carregar();};
+$("prev").onclick=()=>{ciclo=addCiclo(ciclo,-1);gastos=[];render();renderPix();carregar();carregarPix();};
+$("next").onclick=()=>{ciclo=addCiclo(ciclo,1);gastos=[];render();renderPix();carregar();carregarPix();};
 $("cfgBtn").onclick=()=>{$("cfgArea").hidden=!$("cfgArea").hidden;};
 async function copiar(t){try{await navigator.clipboard.writeText(t);$("cpMsg").textContent="Copiado. Cole no Atalho.";}catch(e){$("cpMsg").textContent="Não deu para copiar automaticamente.";}}
 $("cpUrl").onclick=()=>copiar(conf.u); $("cpKey").onclick=()=>copiar(conf.k);
-$("sair").onclick=()=>{ls.del("meumes_conf");ls.del("meumes_cfgcache");ls.del("meumes_fila");location.replace(location.pathname);};
+$("sair").onclick=()=>{ls.del("meumes_conf");ls.del("meumes_cfgcache");ls.del("meumes_fila");ls.del("meumes_pix");ls.del("meumes_contas");location.replace(location.pathname);};
 
 if(!conf){ $("setup").hidden=false; return; }
 $("app").hidden=false;
 if(veioDoLink && !standalone) $("instalar").hidden=false;
-render(); renderDraft(); renderContas(); enviarFila().then(carregar); carregarContas();
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){enviarFila();carregar();carregarContas();}});
+render(); renderDraft(); renderContas(); renderPix(); enviarFila().then(carregar); carregarContas(); carregarPix();
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){enviarFila();carregar();carregarContas();carregarPix();}});
 window.addEventListener("online",enviarFila);
 })();
 </script>
