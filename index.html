@@ -116,6 +116,26 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .cx .ed{display:grid;grid-template-columns:1fr auto;gap:6px}
 .cx .ed input{font:inherit;font-size:16px;padding:9px 10px;border-radius:10px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);min-width:0}
 .cx .ed button{font:inherit;font-weight:600;font-size:14px;padding:9px 12px;border-radius:10px;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.tab{display:grid;gap:14px}
+.wrap{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px)}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border-top:1px solid var(--line);padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px)}
+.tabs button{font:inherit;font-size:12px;font-weight:600;color:var(--muted);background:none;border:0;border-radius:10px;padding:6px 4px;display:grid;justify-items:center;gap:2px;cursor:pointer}
+.tabs button span{font-size:20px;line-height:1}
+.tabs button.on{color:var(--accent);background:var(--soft)}
+.tag{font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+.pvm{border-top:1px solid var(--line);padding:12px 0}
+.pvm:first-child{border-top:0}
+.pvm summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:baseline}
+.pvm summary::-webkit-details-marker{display:none}
+.pvm .m{font-family:var(--f-display);font-weight:700;font-size:16px}
+.pvm .lv{font-family:var(--f-num);font-weight:500;text-align:right}
+.pvm .lv.neg{color:var(--bad)}
+.pvm .sub2{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.pvt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;font-size:13px;margin-top:10px}
+.pvt .num{text-align:right}
+.pvt .h{font-weight:600;padding-top:6px}
+.pvt .in{padding-left:12px;color:var(--muted)}
+.pvt .tl{font-weight:600;border-top:1px solid var(--line);padding-top:4px}
 @media (prefers-reduced-motion: no-preference){.bar i{transition:width .5s ease}}
 </style>
 </head>
@@ -130,7 +150,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
   <div id="app" hidden style="display:grid;gap:14px">
   <div class="top">
     <h1>Meu Mês</h1>
-    <div class="cyc">
+    <div class="cyc" id="cycBox">
       <button id="prev" aria-label="Ciclo anterior">‹</button>
       <span id="cycLbl">ciclo</span>
       <button id="next" aria-label="Próximo ciclo">›</button>
@@ -142,112 +162,130 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
     <p class="note" style="font-size:14px">Agora, no Safari: toque em <strong>Compartilhar</strong> (quadrado com seta) → <strong>Adicionar à Tela de Início</strong> → <strong>Adicionar</strong>. Depois abra pelo ícone novo.</p>
   </section>
 
-  <section class="card hero" aria-live="polite">
-    <div class="row"><span class="lbl">Ainda posso gastar no cartão</span><span id="pace" class="chip ok">no ritmo</span></div>
-    <div class="big num" id="livre">R$ —</div>
-    <div class="bar" aria-hidden="true"><i id="barCartao" style="width:0%"></i><b id="barIdeal" style="left:0%"></b></div>
-    <div class="row muted"><span id="usado">Usado: —</span><span id="teto">Teto: —</span></div>
-    <div class="note" id="heroNote">Carregando…</div>
-  </section>
-
-  <section class="card add" aria-labelledby="addT">
-    <h2 id="addT">Anotar gasto</h2>
-    <label for="txt">Fale ou digite, por exemplo: <em>almoço 38 xp</em>, <em>uber 22 nubank</em>, <em>pix presente 100</em></label>
-    <div class="inrow">
-      <input id="txt" type="text" autocomplete="off" enterkeyhint="done" placeholder="o que foi + valor + cartão">
-      <button class="falar" id="falar" type="button" aria-label="Falar o gasto">
-        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
-      </button>
-    </div>
-    <div class="dica" id="dica" hidden>Toque no <strong>microfone do teclado</strong> (embaixo, ao lado da barra de espaço) e fale.</div>
-    <div class="pv" id="pv" hidden>
-      <button class="v on" id="pvValor" type="button">R$ 0,00</button>
-      <button id="pvMeio" type="button">Cartão XP</button>
-      <button id="pvCat" type="button">Outros</button>
-    </div>
-    <div class="opts" id="optMeio" hidden></div>
-    <div class="opts" id="optCat" hidden></div>
-    <button class="btn" id="salvar" disabled>Salvar</button>
-    <div class="msg" id="msg" role="status"></div>
-  </section>
-
-  <section class="card" aria-labelledby="ctT">
-    <h2 id="ctT">Contas a pagar</h2>
-    <div class="tot" id="ctTot"></div>
-    <div id="ctList"><div class="empty">Carregando contas…</div></div>
-    <details class="sub" id="ctPagasBox" hidden><summary id="ctPagasSum">Pagas</summary><div id="ctPagas"></div></details>
-    <details class="sub" id="ctMaeBox" hidden><summary id="ctMaeSum">Contas da mãe</summary><div id="ctMae"></div></details>
-    <details class="sub" id="ctAddBox"><summary>+ Adicionar conta</summary>
-      <div class="cadd">
-        <input id="caDesc" type="text" placeholder="O que é (ex.: IPVA)" autocomplete="off" maxlength="80">
-        <input id="caVal" type="text" inputmode="decimal" placeholder="Valor" autocomplete="off">
-        <input id="caVen" type="date" aria-label="Vencimento">
-        <button id="caBtn" type="button">Adicionar</button>
-      </div>
-    </details>
-    <div class="msg" id="ctMsg" role="status"></div>
-  </section>
-
-  <section class="card" id="pxCard" hidden aria-labelledby="pxT">
-    <div class="row"><h2 id="pxT">Pix do mês</h2><span class="tot" id="pxCont"></span></div>
-    <div class="bar" style="margin:8px 0 4px"><i id="pxBar" style="width:0%"></i></div>
-    <div class="tot" id="pxTot"></div>
-    <div id="pxList"></div>
-    <details class="sub" id="pxFeitosBox" hidden><summary id="pxFeitosSum">Feitos</summary><div id="pxFeitos"></div></details>
-    <div class="msg" id="pxMsg" role="status"></div>
-  </section>
-
-  <div class="grid2">
-    <section class="card mini">
-      <h2>Pix e débito</h2>
-      <div class="v num" id="pixV">R$ 0</div>
-      <div class="bar"><i id="pixBar" style="width:0%"></i></div>
-      <div class="note" id="pixNote">de R$ 1.000 para imprevistos</div>
+  <div class="tab" id="tabInicio">
+    <section class="card hero" aria-live="polite">
+      <div class="row"><span class="lbl">Ainda posso gastar no cartão</span><span id="pace" class="chip ok">no ritmo</span></div>
+      <div class="big num" id="livre">R$ —</div>
+      <div class="bar" aria-hidden="true"><i id="barCartao" style="width:0%"></i><b id="barIdeal" style="left:0%"></b></div>
+      <div class="row muted"><span id="usado">Usado: —</span><span id="teto">Teto: —</span></div>
+      <div class="note" id="heroNote">Carregando…</div>
     </section>
-    <section class="card mini">
-      <h2>Viagens</h2>
-      <div class="v num" id="viaV">R$ 0</div>
-      <div class="bar"><i id="viaBar" style="width:0%"></i></div>
-      <div class="note" id="viaNote">previsto R$ 0</div>
+
+    <section class="card add" aria-labelledby="addT">
+      <h2 id="addT">Anotar gasto</h2>
+      <label for="txt">Fale ou digite, por exemplo: <em>almoço 38 xp</em>, <em>uber 22 nubank</em>, <em>pix presente 100</em></label>
+      <div class="inrow">
+        <input id="txt" type="text" autocomplete="off" enterkeyhint="done" placeholder="o que foi + valor + cartão">
+        <button class="falar" id="falar" type="button" aria-label="Falar o gasto">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+        </button>
+      </div>
+      <div class="dica" id="dica" hidden>Toque no <strong>microfone do teclado</strong> (embaixo, ao lado da barra de espaço) e fale.</div>
+      <div class="pv" id="pv" hidden>
+        <button class="v on" id="pvValor" type="button">R$ 0,00</button>
+        <button id="pvMeio" type="button">Cartão XP</button>
+        <button id="pvCat" type="button">Outros</button>
+      </div>
+      <div class="opts" id="optMeio" hidden></div>
+      <div class="opts" id="optCat" hidden></div>
+      <button class="btn" id="salvar" disabled>Salvar</button>
+      <div class="msg" id="msg" role="status"></div>
+    </section>
+
+    <section class="card" id="rsCard" hidden>
+      <div class="row"><h2>Contas do mês</h2><span class="tot" id="rsCont"></span></div>
+      <div class="bar" style="margin:8px 0 4px"><i id="rsBar" style="width:0%"></i></div>
+      <div class="row note"><span id="rsFalta"></span><span id="rsProx"></span></div>
+      <button class="btn ghost" id="rsBtn" type="button" style="margin-top:8px">Ver contas e previsão</button>
+    </section>
+
+    <div class="grid2">
+      <section class="card mini">
+        <h2>Pix e débito</h2>
+        <div class="v num" id="pixV">R$ 0</div>
+        <div class="bar"><i id="pixBar" style="width:0%"></i></div>
+        <div class="note" id="pixNote">de R$ 1.000 para imprevistos</div>
+      </section>
+      <section class="card mini">
+        <h2>Viagens</h2>
+        <div class="v num" id="viaV">R$ 0</div>
+        <div class="bar"><i id="viaBar" style="width:0%"></i></div>
+        <div class="note" id="viaNote">previsto R$ 0</div>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="row"><h2>Por categoria</h2><span class="note" id="semana"></span></div>
+      <div class="cats" id="cats"></div>
+    </section>
+
+    <section class="card">
+      <h2>Lançamentos do ciclo</h2>
+      <div id="list"></div>
+    </section>
+
+    <section class="card cfgbox">
+      <button class="btn ghost" id="cfgBtn" type="button">Dados para o Atalho da Siri</button>
+      <div id="cfgArea" hidden class="cfgbox">
+        <p class="note">Use só no app Atalhos deste iPhone. Não envie para ninguém e não tire print.</p>
+        <div class="row"><span>URL</span><button class="btn ghost" id="cpUrl" type="button">Copiar URL</button></div>
+        <div class="row"><span>Chave</span><button class="btn ghost" id="cpKey" type="button">Copiar chave</button></div>
+        <div class="msg" id="cpMsg"></div>
+        <button class="btn ghost" id="sair" type="button">Desligar este aparelho (apaga a chave daqui)</button>
+      </div>
     </section>
   </div>
 
-  <section class="card mini">
-    <div class="row"><h2>Reserva de emergência</h2><span class="note" id="resData"></span></div>
-    <div class="v num" id="resV">R$ —</div>
-    <div class="bar"><i id="resBar" style="width:0%"></i></div>
-    <div class="row note"><span id="resPct">—</span><span id="resMeta">meta —</span></div>
-    <button class="btn ghost" id="resBtn">Registrar transferência para a reserva</button>
-    <div class="msg" id="resMsg" role="status"></div>
-  </section>
+  <div class="tab" id="tabContas" hidden>
+    <section class="card" aria-labelledby="ctT">
+      <div class="row"><h2 id="ctT">Este mês</h2><span class="tot" id="ctCont"></span></div>
+      <div class="bar" style="margin:8px 0 4px"><i id="ctBar" style="width:0%"></i></div>
+      <div class="tot" id="ctTot"></div>
+      <div id="ctList"><div class="empty">Carregando contas…</div></div>
+      <details class="sub" id="ctProxBox" hidden><summary id="ctProxSum">Já chegaram, vencem no próximo ciclo</summary><div id="ctProx"></div></details>
+      <details class="sub" id="ctPagasBox" hidden><summary id="ctPagasSum">Pagas</summary><div id="ctPagas"></div></details>
+      <details class="sub" id="ctMaeBox" hidden><summary id="ctMaeSum">Contas da mãe</summary><div id="ctMae"></div></details>
+      <details class="sub" id="ctAddBox"><summary>+ Adicionar conta</summary>
+        <div class="cadd">
+          <input id="caDesc" type="text" placeholder="O que é (ex.: IPVA)" autocomplete="off" maxlength="80">
+          <input id="caVal" type="text" inputmode="decimal" placeholder="Valor" autocomplete="off">
+          <input id="caVen" type="date" aria-label="Vencimento">
+          <button id="caBtn" type="button">Adicionar</button>
+        </div>
+      </details>
+      <div class="msg" id="ctMsg" role="status"></div>
+    </section>
 
-  <section class="card" id="cxCard" hidden aria-labelledby="cxT">
-    <h2 id="cxT">Caixinhas</h2>
-    <div class="note">Separações do dinheiro aplicado. No dia do salário, guarde o valor do mês de cada uma.</div>
-    <div id="cxList"></div>
-    <div class="msg" id="cxMsg" role="status"></div>
-  </section>
+    <section class="card" aria-labelledby="pvT">
+      <h2 id="pvT">Próximos 12 meses</h2>
+      <div class="note" id="pvNote">Salário − contas fixas − cartão (teto) − imprevistos = sobra. Da sobra saem as caixinhas; o que fica é livre.</div>
+      <div id="pvList"><div class="empty">Carregando previsão…</div></div>
+    </section>
+  </div>
 
-  <section class="card">
-    <div class="row"><h2>Por categoria</h2><span class="note" id="semana"></span></div>
-    <div class="cats" id="cats"></div>
-  </section>
+  <div class="tab" id="tabInvest" hidden>
+    <section class="card mini">
+      <div class="row"><h2>Reserva de emergência</h2><span class="note" id="resData"></span></div>
+      <div class="v num" id="resV">R$ —</div>
+      <div class="bar"><i id="resBar" style="width:0%"></i></div>
+      <div class="row note"><span id="resPct">—</span><span id="resMeta">meta —</span></div>
+      <button class="btn ghost" id="resBtn">Registrar transferência para a reserva</button>
+      <div class="msg" id="resMsg" role="status"></div>
+    </section>
 
-  <section class="card">
-    <h2>Lançamentos do ciclo</h2>
-    <div id="list"></div>
-  </section>
+    <section class="card" id="cxCard" hidden aria-labelledby="cxT">
+      <h2 id="cxT">Caixinhas</h2>
+      <div class="note">Separações do dinheiro aplicado. No dia do salário, guarde o valor do mês de cada uma.</div>
+      <div id="cxList"></div>
+      <div class="msg" id="cxMsg" role="status"></div>
+    </section>
+  </div>
 
-  <section class="card cfgbox">
-    <button class="btn ghost" id="cfgBtn" type="button">Dados para o Atalho da Siri</button>
-    <div id="cfgArea" hidden class="cfgbox">
-      <p class="note">Use só no app Atalhos deste iPhone. Não envie para ninguém e não tire print.</p>
-      <div class="row"><span>URL</span><button class="btn ghost" id="cpUrl" type="button">Copiar URL</button></div>
-      <div class="row"><span>Chave</span><button class="btn ghost" id="cpKey" type="button">Copiar chave</button></div>
-      <div class="msg" id="cpMsg"></div>
-      <button class="btn ghost" id="sair" type="button">Desligar este aparelho (apaga a chave daqui)</button>
-    </div>
-  </section>
+  <nav class="tabs" aria-label="Seções">
+    <button type="button" data-t="Inicio" class="on"><span aria-hidden="true">🏠</span>Início</button>
+    <button type="button" data-t="Contas"><span aria-hidden="true">📅</span>Contas</button>
+    <button type="button" data-t="Invest"><span aria-hidden="true">💰</span>Investimentos</button>
+  </nav>
   </div>
 </div>
 
@@ -342,7 +380,8 @@ async function salvar(){
 
 async function carregar(){
   if(carregando) return; carregando=true;
-  try{ const r=await api({acao:"list",ciclo}); gastos=r.gastos||[]; cfg=(r.cfg&&r.cfg.plano)||null; ls.set("meumes_cfgcache",cfg); render(); }
+  try{ const r=await api({acao:"list",ciclo}); gastos=r.gastos||[]; cfg=(r.cfg&&r.cfg.plano)||null; ls.set("meumes_cfgcache",cfg);
+    if(r.cfg&&r.cfg.previsao){prev=r.cfg.previsao;ls.set("meumes_prev",prev);} render(); }
   catch(e){ $("heroNote").textContent = e.srv ? (e.message==="chave inválida"?"A chave deste aparelho não vale mais. Peça um novo link de configuração ao Claude.":"Erro: "+e.message) : "Sem conexão. Mostrando o último dado salvo."; render(); }
   finally{ carregando=false; }
 }
@@ -381,7 +420,7 @@ function render(){
     $("resPct").textContent=Math.round(r/m*100)+"% da meta";$("resMeta").textContent="meta "+brl0(m);
     $("resData").textContent=cfg.reservaData?"atualizado "+cfg.reservaData.split("-").reverse().join("/"):"";
     if(!$("resBtn").classList.contains("armed")) $("resBtn").textContent="Registrar transferência de "+brl0(aporteRes());}
-  renderCaixinhas();
+  renderCaixinhas(); renderPrev();
   const porCat={}; todos.forEach(g=>{porCat[g.categoria]=(porCat[g.categoria]||0)+g.valor;});
   const ent=Object.entries(porCat).sort((a,b)=>b[1]-a[1]), mx=ent.length?ent[0][1]:1;
   const C=$("cats"); C.textContent="";
@@ -442,7 +481,7 @@ function linhaConta(c){
   const it=document.createElement("div");it.className="ct "+(c.status==="mae"?"mae":c.status==="paga"?"paga":"");
   const d=document.createElement("div");d.className="d";d.textContent=c.descricao;
   const val=document.createElement("span");val.className="num";val.textContent=c.valor?brl(c.valor):"R$ —";
-  const s=document.createElement("div");s.className="s";
+  const s=document.createElement("div");s.className="s"; s.appendChild(tag(c.fonte==="Manual"?"conta":"boleto"));
   const [cls,t]=prazo(c); s.appendChild(chip(cls,t));
   if(c.vencimento&&c.status!=="paga"){const x=document.createElement("span");x.textContent="vence "+dBr(c.vencimento);s.appendChild(x);}
   it.append(d,val,s);
@@ -460,23 +499,44 @@ function linhaConta(c){
   }
   it.appendChild(a); return it;
 }
+// lista única do mês: boletos (e-mail) + Pix fixos; quinzenais por último
+const cicloHoje=()=>cicloDe(isoDate(new Date()));
+const soma=(l,f)=>l.reduce((s,x)=>s+(f(x)||0),0);
 function renderContas(){
   if(!contas) return;
-  const abertas=contas.filter(c=>c.status==="aberta"||c.status==="completar")
-    .sort((x,y)=>(x.vencimento||"9999").localeCompare(y.vencimento||"9999"));
-  const pagas=contas.filter(c=>c.status==="paga").sort((x,y)=>(y.pagoEm||"").localeCompare(x.pagoEm||""));
-  const mae=contas.filter(c=>c.status==="mae");
-  const L=$("ctList"); L.textContent="";
-  if(!abertas.length){const e=document.createElement("div");e.className="empty";e.textContent="Nenhuma conta em aberto. 🎉";L.appendChild(e);}
-  abertas.forEach(c=>L.appendChild(linhaConta(c)));
-  const tot=abertas.reduce((a,c)=>a+(c.valor||0),0);
-  const atras=abertas.filter(c=>c.vencimento&&diasAte(c.vencimento)<=0).length;
-  $("ctTot").textContent=abertas.length?brl0(tot)+" em aberto"+(atras?" · "+atras+(atras>1?" vencem hoje ou estão atrasadas":" vence hoje ou está atrasada"):""):"";
+  const L=$("ctList"); if(L.querySelector(".ed")) return;   // não redesenha com um editor aberto
+  const cAt=cicloHoje(), [ini,fim]=limites(cAt), iniIso=isoDate(ini), fimIso=isoDate(fim);
+  const abertas=contas.filter(c=>c.status==="aberta"||c.status==="completar");
+  const doMes=abertas.filter(c=>!c.vencimento||c.vencimento<=fimIso), prox=abertas.filter(c=>c.vencimento&&c.vencimento>fimIso);
+  const pagasC=contas.filter(c=>c.status==="paga"&&(c.pagoEm||"")>=iniIso), mae=contas.filter(c=>c.status==="mae");
+  const vs=vezesPix(cAt), q=v=>(v.it.dias||[]).length>1?1:0;
+  const pend=[...doMes.map(c=>({q:0,d:c.vencimento||"0000",venc:c.vencimento,nome:c.descricao,valor:c.valor,el:()=>linhaConta(c)})),
+    ...vs.filter(v=>!v.pg).map(v=>({q:q(v),d:v.venc,venc:v.venc,nome:v.it.nome,valor:v.it.valor,el:()=>linhaPix(v)}))]
+    .sort((x,y)=>x.q-y.q||x.d.localeCompare(y.d));
+  const feitos=[...pagasC.map(c=>({d:c.pagoEm||"",valor:c.valor,el:()=>linhaConta(c)})),
+    ...vs.filter(v=>v.pg).map(v=>({d:v.pg.data,valor:v.pg.valor,el:()=>linhaPix(v)}))].sort((x,y)=>y.d.localeCompare(x.d));
+  L.textContent="";
+  if(!pend.length){const e=document.createElement("div");e.className="empty";e.textContent="Tudo pago neste ciclo. 🎉";L.appendChild(e);}
+  pend.forEach(x=>L.appendChild(x.el()));
+  const falta=soma(pend,x=>x.valor), pago=soma(feitos,x=>x.valor), n=pend.length+feitos.length;
+  const atras=pend.filter(x=>x.venc&&diasAte(x.venc)<=0).length;
+  $("ctCont").textContent=n?feitos.length+" de "+n+" pagos":"";
+  $("ctBar").style.width=(n?feitos.length/n*100:0)+"%";
+  $("ctTot").textContent="Total "+brl0(falta+pago)+" · pago "+brl0(pago)+" · falta "+brl0(falta)+(atras?" · "+atras+(atras>1?" para hoje ou atrasados":" para hoje ou atrasado"):"");
   $("ctTot").style.color=atras?"var(--bad)":"";
-  $("ctPagasBox").hidden=!pagas.length; $("ctPagasSum").textContent="Pagas recentemente ("+pagas.length+")";
-  $("ctPagas").textContent=""; pagas.forEach(c=>$("ctPagas").appendChild(linhaConta(c)));
+  $("ctProxBox").hidden=!prox.length; $("ctProxSum").textContent="Já chegaram, vencem no próximo ciclo ("+prox.length+")";
+  $("ctProx").textContent=""; prox.sort((x,y)=>x.vencimento.localeCompare(y.vencimento)).forEach(c=>$("ctProx").appendChild(linhaConta(c)));
+  $("ctPagasBox").hidden=!feitos.length; $("ctPagasSum").textContent="Pagas neste ciclo ("+feitos.length+")";
+  $("ctPagas").textContent=""; feitos.forEach(x=>$("ctPagas").appendChild(x.el()));
   $("ctMaeBox").hidden=!mae.length; $("ctMaeSum").textContent="Contas da mãe ("+mae.length+"), sem alerta";
   $("ctMae").textContent=""; mae.forEach(c=>$("ctMae").appendChild(linhaConta(c)));
+  // resumo na Início
+  $("rsCard").hidden=!n; $("rsCont").textContent=feitos.length+" de "+n+" pagas";
+  $("rsBar").style.width=(n?feitos.length/n*100:0)+"%";
+  $("rsFalta").textContent=pend.length?"Falta "+brl0(falta)+(atras?" · "+atras+" atrasada"+(atras>1?"s":""):""):"Tudo pago 🎉";
+  $("rsFalta").style.color=atras?"var(--bad)":"";
+  const px=pend.filter(x=>x.venc&&diasAte(x.venc)>0).sort((x,y)=>x.d.localeCompare(y.d))[0];
+  $("rsProx").textContent=px?"próxima: "+px.nome+" "+dBr(px.venc):"";
 }
 $("caBtn").onclick=async()=>{
   const desc=$("caDesc").value.trim(), val=numBr($("caVal").value), ven=$("caVen").value;
@@ -486,45 +546,43 @@ $("caBtn").onclick=async()=>{
   $("caBtn").disabled=false;
 };
 
-// ---- Pix do mês: transferências fixas; cada "vez" é um check no ciclo (não entra como gasto) ----
+// ---- Pix fixos (cada "vez" é um check no ciclo atual; não entra como gasto) ----
 let pix=ls.get("meumes_pix")||null, carregandoP=false;
 function pixVenc(c,dia){const dSal=(cfg&&cfg.diaSalario)||10;let [y,m]=c.split("-").map(Number);if(dia<dSal){m++;if(m>12){m=1;y++;}}
   const ult=new Date(y,m,0).getDate();return y+"-"+pad(m)+"-"+pad(Math.min(dia,ult));}
 async function carregarPix(){
-  if(carregandoP) return; carregandoP=true; const c=ciclo;
-  try{ const r=await api({acao:"pix",ciclo:c}); if(c!==ciclo) return; pix=r; ls.set("meumes_pix",pix); renderPix(); }
-  catch(e){ if(pix) renderPix(); }
+  if(carregandoP) return; carregandoP=true;
+  try{ pix=await api({acao:"pix",ciclo:cicloHoje()}); ls.set("meumes_pix",pix); renderContas(); }
+  catch(e){ renderContas(); }
   finally{ carregandoP=false; }
 }
 async function acaoPix(body,okMsg){
-  try{ const r=await api(Object.assign({ciclo},body)); pix=r; ls.set("meumes_pix",pix); $("pxMsg").textContent=okMsg||""; renderPix(); return true; }
-  catch(e){ $("pxMsg").textContent=e.srv?"Não salvou: "+e.message:"Sem internet: tente de novo."; return false; }
+  try{ pix=await api(Object.assign({ciclo:cicloHoje()},body)); ls.set("meumes_pix",pix); $("ctMsg").textContent=okMsg||""; renderContas(); return true; }
+  catch(e){ $("ctMsg").textContent=e.srv?"Não salvou: "+e.message:"Sem internet: tente de novo."; return false; }
 }
-function vezesPix(){
-  if(!pix||pix.ciclo!==ciclo) return [];
+function vezesPix(c){
+  if(!pix||pix.ciclo!==c) return [];
   const out=[]; (pix.itens||[]).forEach(it=>(it.dias||[]).forEach((dia,n)=>{
-    const pg=((pix.pagos||{})[it.id]||[]).find(x=>x.n===n);
-    out.push({it,n,venc:pixVenc(ciclo,dia),pg});}));
-  // mensais por data; quinzenais (psicóloga, diarista) sempre por último
-  const q=v=>(v.it.dias||[]).length>1?1:0;
-  return out.sort((a,b)=>q(a)-q(b)||a.venc.localeCompare(b.venc)||a.it.nome.localeCompare(b.it.nome));
+    out.push({it,n,venc:pixVenc(c,dia),pg:((pix.pagos||{})[it.id]||[]).find(x=>x.n===n)});}));
+  return out;
 }
+function tag(t){const s=document.createElement("span");s.className="tag";s.textContent=t;return s;}
 function linhaPix(v){
   const {it,n,pg}=v, multi=(it.dias||[]).length>1;
   const el=document.createElement("div");el.className="ct"+(pg?" paga":"");
   const d=document.createElement("div");d.className="d";d.textContent=it.nome+(multi?" · "+(n+1)+"ª vez":"");
   const val=document.createElement("span");val.className="num";val.textContent=pg?brl(pg.valor):(it.variavel?"~":"")+brl(it.valor);
-  const s=document.createElement("div");s.className="s";
-  if(pg){ s.appendChild(chip("ok","feito "+dBr(pg.data))); }
-  else{ const k=diasAte(v.venc); s.appendChild(k<0?chip("bad","atrasado "+(-k)+"d"):k===0?chip("bad","hoje"):k<=3?chip("warn",k===1?"amanhã":"em "+k+" dias"):chip("ok","dia "+dBr(v.venc))); }
-  if(it.quem){const q=document.createElement("span");q.textContent=it.quem+(pg&&pg.email?" · baixa automática (e-mail do banco)":"");s.appendChild(q);}
+  const s=document.createElement("div");s.className="s"; s.appendChild(tag("Pix"));
+  if(pg){ s.appendChild(chip("ok","paga "+dBr(pg.data))); }
+  else{ const k=diasAte(v.venc); s.appendChild(k<0?chip("bad","atrasada "+(-k)+"d"):k===0?chip("bad","hoje"):k<=3?chip("warn",k===1?"amanhã":"em "+k+" dias"):chip("ok","dia "+dBr(v.venc))); }
+  if(it.quem){const qq=document.createElement("span");qq.textContent=it.quem+(pg&&pg.email?" · baixa automática":"");s.appendChild(qq);}
   el.append(d,val,s);
   const a=document.createElement("div");a.className="acts";
   if(pg){ a.appendChild(bt("Desfazer",()=>acaoPix({acao:"pix_desfazer",id:it.id,n},"Desfeito."))); }
   else{
     const ok=bt("Paguei",async()=>{
       if(!ok.classList.contains("confirm")){ok.classList.add("confirm");ok.textContent="Confirmar "+brl0(it.valor);setTimeout(()=>{ok.classList.remove("confirm");ok.textContent="Paguei";},4000);return;}
-      ok.disabled=true; if(!await acaoPix({acao:"pix_paguei",id:it.id,n},it.nome+": feito ✓")) ok.disabled=false;},"pg");
+      ok.disabled=true; if(!await acaoPix({acao:"pix_paguei",id:it.id,n},it.nome+": paga ✓")) ok.disabled=false;},"pg");
     a.appendChild(ok);
     a.appendChild(bt("Outro valor",()=>{if(el.querySelector(".ed"))return;const ed=document.createElement("div");ed.className="ed";ed.style.gridTemplateColumns="1fr auto";
       const inp=document.createElement("input");inp.type="text";inp.inputMode="decimal";inp.placeholder="Quanto foi";
@@ -535,19 +593,59 @@ function linhaPix(v){
   }
   el.appendChild(a); return el;
 }
-function renderPix(){
-  const vs=vezesPix(); $("pxCard").hidden=!(pix&&(pix.itens||[]).length); if($("pxCard").hidden) return;
-  const L=$("pxList"); if(L.querySelector(".ed")) return;   // não redesenha com "Outro valor" aberto
-  const fal=vs.filter(v=>!v.pg), feitos=vs.filter(v=>v.pg);
-  $("pxCont").textContent=vs.length?feitos.length+" de "+vs.length+" feitos":"";
-  $("pxBar").style.width=(vs.length?feitos.length/vs.length*100:0)+"%";
-  const falta=fal.reduce((s,v)=>s+(v.it.valor||0),0), atras=fal.filter(v=>diasAte(v.venc)<=0).length;
-  $("pxTot").textContent=!pix||pix.ciclo!==ciclo?"Carregando…":fal.length?"Faltam "+brl0(falta)+(atras?" · "+atras+(atras>1?" para hoje ou atrasados":" para hoje ou atrasado"):""):"Tudo feito neste ciclo. 🎉";
-  $("pxTot").style.color=atras?"var(--bad)":"";
-  L.textContent=""; fal.forEach(v=>L.appendChild(linhaPix(v)));
-  $("pxFeitosBox").hidden=!feitos.length; $("pxFeitosSum").textContent="Feitos ("+feitos.length+")";
-  $("pxFeitos").textContent=""; feitos.forEach(v=>$("pxFeitos").appendChild(linhaPix(v)));
+
+// ---- previsão dos próximos 12 meses (aba Contas) ----
+let prev=ls.get("meumes_prev")||null;
+const mesTxt=c=>{const [y,m]=c.split("-");return MES[+m-1]+"/"+y.slice(2);};
+function linhaPv(t,l,v,cls){const a=document.createElement("span"),b=document.createElement("span");a.textContent=l;b.className="num";
+  b.textContent=v==null?"":(cls==="in"?"":v<0?"− ":"+ ")+brl0(Math.abs(v));if(cls){a.className=cls;b.classList.add(cls);}t.append(a,b);}
+function renderPrev(){
+  const L=$("pvList");
+  if(!prev||!cfg){L.innerHTML='<div class="empty">Carregando previsão…</div>';return;}
+  if(L.querySelector("details[open]")) return;   // não fecha o mês aberto
+  L.textContent=""; const c0=cicloHoje(); let pior=null;
+  for(let i=1;i<=12;i++){
+    const m=addCiclo(c0,i), fixos=(prev.fixos||[]).filter(f=>!f.ate||f.ate>=m), fx=soma(fixos,f=>f.valor);
+    const parc=(prev.parcelas||[]).filter(p=>p.mes===m), pT=parc.filter(p=>!p.viagem), pV=parc.filter(p=>p.viagem);
+    const via=soma(pV,p=>p.valor), sobra=prev.salario-fx-prev.teto-via-prev.pontuais;
+    const res=cfg.aporteMensal&&cfg.aporteMensal.length?mensalEm({mensal:cfg.aporteMensal},m):(cfg.aporte||0);
+    const objs=[{nome:"Reserva de emergência",v:res}].concat((cfg.objetivos||[]).map(o=>({nome:o.nome,v:mensalEm(o,m)}))).filter(x=>x.v>0);
+    const cx=soma(objs,x=>x.v), livre=sobra-cx;
+    if(!pior||livre<pior.v) pior={m,v:livre};
+    const det=document.createElement("details");det.className="pvm";
+    const su=document.createElement("summary");
+    const a=document.createElement("span");a.className="m";a.textContent=mesTxt(m);
+    const b=document.createElement("span");b.className="lv"+(livre<0?" neg":"");b.textContent="livre "+brl0(livre);
+    const c=document.createElement("span");c.className="sub2";c.textContent="sobra "+brl0(sobra)+" · caixinhas "+brl0(cx)+(parc.length?" · "+parc.length+" parcela"+(parc.length>1?"s":"")+" no cartão":"");
+    su.append(a,b,c); det.appendChild(su);
+    const t=document.createElement("div");t.className="pvt";
+    linhaPv(t,"Salário",prev.salario);
+    linhaPv(t,"Contas fixas ("+fixos.length+")",-fx,"h");
+    fixos.slice().sort((x,y)=>y.valor-x.valor).forEach(f=>linhaPv(t,f.item+(f.ate&&f.ate.slice(0,7)===m?" (última)":""),f.valor,"in"));
+    linhaPv(t,"Cartões: teto do variável",-prev.teto,"h");
+    if(pT.length){ const comp=soma(pT,p=>p.valor);
+      linhaPv(t,"já comprometido em parcelas: "+brl0(comp)+" · sobra p/ o dia a dia: "+brl0(prev.teto-comp),null,"in");
+      pT.forEach(p=>linhaPv(t,p.desc+" "+p.parcela,p.valor,"in")); }
+    if(pV.length){ linhaPv(t,"Viagem no cartão (fora do teto)",-via,"h"); pV.forEach(p=>linhaPv(t,p.desc+" "+p.parcela,p.valor,"in")); }
+    linhaPv(t,"Imprevistos (Pix/débito)",-prev.pontuais,"h");
+    linhaPv(t,"Sobra",sobra,"tl");
+    if(objs.length){ linhaPv(t,"Caixinhas",-cx,"h"); objs.forEach(x=>linhaPv(t,x.nome,x.v,"in")); }
+    linhaPv(t,"Livre (viagens, extras)",livre,"tl");
+    (prev.retiradas||[]).filter(r=>r.mes===m).forEach(r=>linhaPv(t,"↳ sai da caixinha "+r.caixinha+": "+r.motivo,r.valor,"in"));
+    det.appendChild(t); L.appendChild(det);
+  }
+  $("pvNote").textContent="Salário − contas fixas − cartão (teto) − imprevistos = sobra; da sobra saem as caixinhas, e o resto fica livre. Toque num mês para ver o detalhe."+
+    (pior?" Mês com menos folga: "+mesTxt(pior.m)+" ("+brl0(pior.v)+" livre).":"")+(prev.atualizadoEm?" Parcelas das faturas até "+dBr(prev.atualizadoEm)+".":"");
 }
+
+// ---- abas ----
+function aba(t){
+  ["Inicio","Contas","Invest"].forEach(x=>{$("tab"+x).hidden=x!==t;});
+  document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  $("cycBox").style.visibility=t==="Inicio"?"":"hidden"; ls.set("meumes_aba",t); window.scrollTo(0,0);
+}
+document.querySelectorAll(".tabs button").forEach(b=>{b.onclick=()=>aba(b.dataset.t);});
+$("rsBtn").onclick=()=>aba("Contas");
 
 // ---- caixinhas (anuais, Canadá, viagens): saldo virtual dentro do dinheiro aplicado ----
 function aporteRes(){const c=cicloDe(isoDate(new Date()));return cfg&&cfg.aporteMensal&&cfg.aporteMensal.length?mensalEm({mensal:cfg.aporteMensal},c):((cfg&&cfg.aporte)||2500);}
@@ -595,17 +693,18 @@ $("resBtn").onclick=async()=>{const b=$("resBtn");if(!cfg)return;
   b.classList.remove("armed");b.disabled=true;
   try{const r=await api({acao:"reserva",valor:aporteRes()});cfg=r.cfg.plano;ls.set("meumes_cfgcache",cfg);$("resMsg").textContent="Reserva atualizada: "+brl(cfg.reserva)+". Boa!";render();}
   catch(e){$("resMsg").textContent="Não salvou. Tente de novo.";}finally{b.disabled=false;}};
-$("prev").onclick=()=>{ciclo=addCiclo(ciclo,-1);gastos=[];render();renderPix();carregar();carregarPix();};
-$("next").onclick=()=>{ciclo=addCiclo(ciclo,1);gastos=[];render();renderPix();carregar();carregarPix();};
+$("prev").onclick=()=>{ciclo=addCiclo(ciclo,-1);gastos=[];render();carregar();};
+$("next").onclick=()=>{ciclo=addCiclo(ciclo,1);gastos=[];render();carregar();};
 $("cfgBtn").onclick=()=>{$("cfgArea").hidden=!$("cfgArea").hidden;};
 async function copiar(t){try{await navigator.clipboard.writeText(t);$("cpMsg").textContent="Copiado. Cole no Atalho.";}catch(e){$("cpMsg").textContent="Não deu para copiar automaticamente.";}}
 $("cpUrl").onclick=()=>copiar(conf.u); $("cpKey").onclick=()=>copiar(conf.k);
-$("sair").onclick=()=>{ls.del("meumes_conf");ls.del("meumes_cfgcache");ls.del("meumes_fila");ls.del("meumes_pix");ls.del("meumes_contas");location.replace(location.pathname);};
+$("sair").onclick=()=>{ls.del("meumes_conf");ls.del("meumes_cfgcache");ls.del("meumes_fila");ls.del("meumes_pix");ls.del("meumes_contas");ls.del("meumes_prev");ls.del("meumes_aba");location.replace(location.pathname);};
 
 if(!conf){ $("setup").hidden=false; return; }
 $("app").hidden=false;
 if(veioDoLink && !standalone) $("instalar").hidden=false;
-render(); renderDraft(); renderContas(); renderPix(); enviarFila().then(carregar); carregarContas(); carregarPix();
+aba(ls.get("meumes_aba")||"Inicio");
+render(); renderDraft(); renderContas(); enviarFila().then(carregar); carregarContas(); carregarPix();
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"){enviarFila();carregar();carregarContas();carregarPix();}});
 window.addEventListener("online",enviarFila);
 })();
